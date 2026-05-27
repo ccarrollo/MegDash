@@ -26,6 +26,8 @@ export type DoctorRow = {
   lat: number | null;
   lng: number | null;
   last_visit_at: string | null;
+  is_last_visit_overridden?: boolean;
+  manual_last_visit_date?: string | null;
   days_since_visit: number | null;
 };
 

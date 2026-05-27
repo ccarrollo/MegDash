@@ -56,6 +56,7 @@ create table if not exists doctors (
   order_history text,
   front_desk_notes text,
   competitor_notes text,
+  manual_last_visit_date date,
   follow_up_lunch text,
   created_at timestamptz not null default now()
 );
@@ -112,10 +113,11 @@ select
   f.zone,
   f.lat,
   f.lng,
-  v.last_visit_at,
+  coalesce(d.manual_last_visit_date::timestamptz, v.last_visit_at) as last_visit_at,
+  (d.manual_last_visit_date is not null) as is_last_visit_overridden,
   case
-    when v.last_visit_at is null then null
-    else (current_date - v.last_visit_at::date)
+    when coalesce(d.manual_last_visit_date::timestamptz, v.last_visit_at) is null then null
+    else (current_date - coalesce(d.manual_last_visit_date::timestamptz, v.last_visit_at)::date)
   end as days_since_visit
 from doctors d
 join facilities f on f.id = d.facility_id

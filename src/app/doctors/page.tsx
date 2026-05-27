@@ -1,5 +1,6 @@
 import { SetupBanner } from "@/components/SetupBanner";
 import { LogVisitForm } from "@/components/LogVisitForm";
+import { OverrideVisitDateForm } from "@/components/OverrideVisitDateForm";
 import { fetchDoctors, getSetupStatus } from "@/lib/data";
 import { ZONE_LABELS } from "@/lib/zones";
 
@@ -54,8 +55,19 @@ export default async function DoctorsPage() {
                 </div>
               </div>
               <p className="mt-1 text-xs text-slate-500">{d.status}</p>
+              {d.is_last_visit_overridden && (
+                <p className="mt-1 text-xs font-medium text-amber-700">
+                  Manual last-visit override active
+                </p>
+              )}
               <div className="mt-3 border-t border-slate-100 pt-3">
                 <LogVisitForm doctorId={d.id} doctorName={d.name} />
+                <OverrideVisitDateForm
+                  doctorId={d.id}
+                  doctorName={d.name}
+                  currentDate={d.manual_last_visit_date ?? d.last_visit_at}
+                  isOverridden={d.is_last_visit_overridden}
+                />
               </div>
             </li>
           ))}
