@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { outcomeUpdatesLastVisit } from "@/lib/visitOutcomes";
 import { getSupabase } from "@/lib/supabase";
 
 export async function POST(request: Request) {
@@ -21,11 +22,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  const { error: visitError } = await supabase.from("visits").insert({
-    doctor_id: doctorId,
-    outcome,
-    note: note ?? null,
-  });
+  const { data: visit, error: visitError } = await supabase
+    .from("visits")
+    .insert({
+      doctor_id: doctorId,
+      outcome,
+      note: note ?? null,
+    })
+    .select("id")
+    .single();
 
   if (visitError) {
     return NextResponse.json({ error: visitError.message }, { status: 500 });
@@ -38,5 +43,28 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json({ ok: true });
+  if (outcome === "order_obtained") {
+    const { data: doctor } = await supabase
+      .from("doctors")
+      .select("facility_id")
+      .eq("id", doctorId)
+      .single();
+
+    await supabase.from("orders").insert({
+      doctor_id: doctorId,
+      facility_id: doctor?.facility_id ?? null,
+      visit_id: visit.id,
+      status: "pending",
+      pipeline_stage: "order_received",
+      source: "visit_log",
+      notes: note?.trim() || "Logged from field visit",
+    });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    visitId: visit.id,
+    updatesLastVisit: outcomeUpdatesLastVisit(outcome),
+    createdOrder: outcome === "order_obtained",
+  });
 }

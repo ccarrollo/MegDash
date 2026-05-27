@@ -166,6 +166,7 @@ def main():
             "front_desk_notes": (row.get("Front Desk Notes") or "").strip() or None,
             "competitor_notes": (row.get("Competitor Notes") or "").strip() or None,
             "follow_up_lunch": (row.get("Follow Up Lunch?") or "").strip() or None,
+            "interaction_notes": (row.get("Interaction Notes") or "").strip() or None,
         }
         api_request("POST", f"{rest}/doctors", key, [doctor_payload])
         inserted_doctors += 1
@@ -193,11 +194,22 @@ def main():
             api_request("POST", f"{rest}/lunches", key, [lunch_payload])
             inserted_lunches += 1
 
-        for note_col in ["Interaction Notes", "Other Notes", "Front Desk Notes", "Competitor Notes"]:
+        note_categories = [
+            ("Interaction Notes", "interaction"),
+            ("Other Notes", "other"),
+            ("Front Desk Notes", "front_desk"),
+            ("Competitor Notes", "competitor"),
+        ]
+        for note_col, category in note_categories:
             body = (row.get(note_col) or "").strip()
             if not body:
                 continue
-            api_request("POST", f"{rest}/notes", key, [{"doctor_id": doctor_id, "body": body}])
+            api_request(
+                "POST",
+                f"{rest}/notes",
+                key,
+                [{"doctor_id": doctor_id, "body": body, "category": category}],
+            )
             inserted_notes += 1
 
     print(

@@ -10,10 +10,32 @@
   --accent: #2563eb;
 }
 
+.dark {
+  color-scheme: dark;
+  --bg: #020617;
+  --card: #0f172a;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #3b82f6;
+}
+
 body {
   color: var(--text);
   background: var(--bg);
   -webkit-tap-highlight-color: transparent;
+}
+
+@layer base {
+  .dark input:not([type="checkbox"]):not([type="radio"]),
+  .dark select,
+  .dark textarea {
+    @apply border-slate-600 bg-slate-800 text-slate-100;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    @apply text-slate-500;
+  }
 }
 
 @layer utilities {

@@ -81,21 +81,41 @@ Optional: **Access control → Password** on the Netlify site for privacy withou
 
 ## Import from Google Sheet
 
-Next step: run a one-time import from **Meg AI Dash → Prospecting** tab (CSV export).
+### Prospecting (doctors)
 
-Columns map to `facilities` + `doctors` + initial `notes` from Interaction Notes.
+**Import** tab in the app, or:
+
+```powershell
+python scripts/import_real_csv.py path\to\Prospecting.csv
+```
+
+### Sales & Goals
+
+Run migrations in Supabase SQL Editor (in order), including:
+
+- `supabase/migrations/2026-05-29_sales_goals_pipeline.sql`
+- `supabase/migrations/2026-05-30_sales_goals_sheet_model.sql`
+
+Export CSVs from **Meg AI Dash**:
+
+```powershell
+# Paid 3PP rows only (wholesale skipped for now)
+python scripts/import_sales_csv.py path\to\Sales.csv
+
+# AS + PS monthly goals
+python scripts/import_goals_csv.py path\to\Goals.csv 2026
+```
+
+In the app: **Sales** tab → set AS/PS goals, move orders through pipeline, enter **My Sales $** per order when marking paid, or use **+ Add paid sale**.
+
+Commission logic: monthly **Q** from that month’s tier; **R** true-up on Mar/Jun/Sep (quarter) and Dec (year). My Sales $ can be **0** for comp/giveaway units.
 
 ## App screens
 
 | Route | Purpose |
 |-------|---------|
-| `/` | **Today** — zone-aware plan, lunches locked, suggested visits |
+| `/` | **Today** — zone-aware plan, lunches, suggested visits |
 | `/doctors` | All doctors, sorted by days since visit |
 | `/lunches` | Upcoming / past lunches |
-
-## What’s next
-
-- [ ] CSV import script from Prospecting tab
-- [ ] Geocode addresses (Google Maps API)
-- [ ] Drive-time routing between stops
-- [ ] Goals / orders from other tabs
+| `/sales` | Goals, commission, order pipeline, paid sales |
+| `/search` | Search doctors and lunches |

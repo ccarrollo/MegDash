@@ -1,31 +1,35 @@
 "use client";
 
+import { VISIT_OUTCOMES } from "@/lib/constants";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-export function LogVisitForm({
-  doctorId,
-  doctorName,
-}: {
-  doctorId: string;
-  doctorName: string;
-}) {
+export function LogVisitForm({ doctorId }: { doctorId: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [note, setNote] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [outcome, setOutcome] = useState("visited_success");
 
-  async function log(outcome: string) {
+  const selected = useMemo(
+    () => VISIT_OUTCOMES.find((o) => o.value === outcome),
+    [outcome],
+  );
+
+  async function log() {
     setLoading(true);
     try {
       const res = await fetch("/api/visits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doctorId, outcome, note: note.trim() || undefined }),
+        body: JSON.stringify({ doctorId, outcome }),
       });
-      if (!res.ok) throw new Error("Failed");
-      setNote("");
-      setExpanded(false);
+      const data = (await res.json()) as {
+        createdOrder?: boolean;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      if (data.createdOrder) {
+        alert("Order logged — check Sales & Orders tab.");
+      }
       router.refresh();
     } catch {
       alert("Could not log visit. Is Supabase connected?");
@@ -36,43 +40,41 @@ export function LogVisitForm({
 
   return (
     <div>
-      <p className="mb-2 text-xs font-medium text-slate-500">
-        Log visit — {doctorName}
-      </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={outcome}
+          onChange={(e) => setOutcome(e.target.value)}
+          className="min-w-0 flex-1 rounded-lg border border-slate-300 dark:border-slate-600 px-2 py-2 text-sm"
+        >
+          {VISIT_OUTCOMES.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           disabled={loading}
-          onClick={() => log("visited")}
+          onClick={log}
           className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          Visited
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => log("no_contact")}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 disabled:opacity-50"
-        >
-          No contact
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => setExpanded(!expanded)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600"
-        >
-          + Note
+          Save
         </button>
       </div>
-      {expanded && (
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Quick note…"
-          rows={2}
-          className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
+      {selected && (
+        <p
+          className={`mt-2 text-xs ${
+            selected.updatesLastVisit
+              ? "text-slate-500 dark:text-slate-400"
+              : "text-amber-700 dark:text-amber-300"
+          }`}
+        >
+          {selected.updatesLastVisit
+            ? "Updates days since last visit."
+            : outcome === "order_obtained"
+              ? "Creates a pending order on Sales & Orders — does not change visit recency."
+              : "Logged for history only — does not change days since last visit."}
+        </p>
       )}
     </div>
   );

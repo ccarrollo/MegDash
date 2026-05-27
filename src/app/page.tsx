@@ -1,56 +1,55 @@
+import { PlanDateNav } from "@/components/PlanDateNav";
+import { PlanDayClient } from "@/components/PlanDayClient";
 import { SetupBanner } from "@/components/SetupBanner";
-import { StopCard } from "@/components/StopCard";
-import { HOME_ADDRESS } from "@/lib/constants";
-import { fetchDoctors, getTodayPlan, getSetupStatus } from "@/lib/data";
-import { ZONE_LABELS } from "@/lib/zones";
+import {
+  formatPlanDateLong,
+  isTodayPlanDate,
+  parsePlanDate,
+} from "@/lib/dateUtils";
+import { getPlanForDate, getSetupStatus } from "@/lib/data";
 
-function formatDate(d: Date) {
-  return d.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
+type Props = {
+  searchParams: Promise<{ date?: string }>;
+};
 
-export default async function TodayPage() {
+export default async function TodayPage({ searchParams }: Props) {
   const setup = getSetupStatus();
-  const { anchorZone, stops } = await getTodayPlan();
-  const doctors = await fetchDoctors();
-  const lunchCount = stops.filter((s) => s.kind === "lunch").length;
+  const { date: dateParam } = await searchParams;
+  const planDate = parsePlanDate(dateParam);
+  const { stops, doctors, anchors, prospectCount, autoSuggestions } =
+    await getPlanForDate(planDate);
+  const viewingToday = isTodayPlanDate(planDate);
 
   return (
     <div className="space-y-4">
       {!setup.supabase && <SetupBanner />}
 
       <section className="rounded-xl bg-brand-600 p-4 text-white">
-        <p className="text-sm opacity-90">{formatDate(new Date())}</p>
-        <h1 className="text-2xl font-bold">Today&apos;s plan</h1>
-        <p className="mt-1 text-sm opacity-90">
-          Zone: <strong>{ZONE_LABELS[anchorZone]}</strong>
-          {lunchCount > 0 && ` · ${lunchCount} lunch${lunchCount > 1 ? "es" : ""}`}
+        <p className="text-sm opacity-90">
+          {viewingToday ? "Today" : "Planning"} · {formatPlanDateLong(planDate)}
         </p>
-        <p className="mt-2 text-xs opacity-75">Start: {HOME_ADDRESS}</p>
+        <h1 className="text-2xl font-bold">
+          {viewingToday ? "Today's plan" : "Day plan"}
+        </h1>
+        <div className="mt-3">
+          <PlanDateNav planDate={planDate} />
+        </div>
       </section>
 
-      {stops.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-          {setup.supabase
-            ? "No stops yet. Use the Import tab to load her Prospecting CSV."
-            : "Connect Supabase, then import her Prospecting tab."}
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {stops.map((stop) => (
-            <li key={`${stop.kind}-${stop.doctorId}`}>
-              <StopCard stop={stop} />
-            </li>
-          ))}
-        </ul>
+      {setup.supabase && (
+        <PlanDayClient
+          planDate={planDate}
+          stops={stops}
+          doctors={doctors}
+          anchors={anchors}
+          prospectCount={prospectCount}
+          autoSuggestions={autoSuggestions}
+        />
       )}
 
       {setup.supabase && (
-        <p className="text-center text-xs text-slate-400">
-          {doctors.length} doctors in database
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
+          {doctors.length} doctors · Central (Austin)
         </p>
       )}
     </div>

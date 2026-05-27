@@ -50,10 +50,10 @@ export function ImportProspectingForm() {
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="space-y-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm dark:shadow-slate-950/50">
       <div>
         <h2 className="text-lg font-semibold">Import Prospecting CSV</h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-400">
           Export the Prospecting tab as CSV from Google Sheets, then upload it.
         </p>
       </div>
@@ -65,7 +65,7 @@ export function ImportProspectingForm() {
           const file = e.target.files?.[0];
           if (file) void onFile(file);
         }}
-        className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium"
+        className="block w-full text-sm text-slate-600 dark:text-slate-400 dark:text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 dark:bg-slate-800 file:px-3 file:py-2 file:text-sm file:font-medium"
       />
 
       <textarea
@@ -73,10 +73,10 @@ export function ImportProspectingForm() {
         onChange={(e) => setCsv(e.target.value)}
         placeholder="Or paste CSV text here…"
         rows={8}
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm"
       />
 
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
         <input
           type="checkbox"
           checked={replaceExisting}
@@ -95,7 +95,7 @@ export function ImportProspectingForm() {
       </button>
 
       {message && (
-        <p className="text-sm text-slate-600" aria-live="polite">
+        <p className="text-sm text-slate-600 dark:text-slate-400 dark:text-slate-400" aria-live="polite">
           {message}
         </p>
       )}
