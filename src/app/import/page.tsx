@@ -11,9 +11,10 @@ export default function ImportPage() {
     <div className="space-y-8 pb-8">
       <div>
         <h1 className="text-xl font-bold">Import from Meg AI Dash</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-400">
-          Export each tab as CSV from Google Sheets, upload here — same flow as
-          Prospecting.
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Upload <strong>Relationships</strong> and <strong>Prospecting</strong>{" "}
+          CSVs so every doctor from both tabs is in the app. Merge import keeps
+          existing records and adds new targets.
         </p>
         <p className="mt-2 text-sm">
           <Link href="/sales" className="text-brand-600 hover:underline">

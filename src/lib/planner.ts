@@ -268,10 +268,12 @@ export function buildDailyPlan(
     if (d.priority === "High") reasons.push("High priority");
     if (d.days_since_visit != null) {
       reasons.push(`${d.days_since_visit} days since visit`);
+    } else if (d.days_since_contact != null) {
+      reasons.push(`${d.days_since_contact}d since contact`);
     } else if (d.days_since_activity != null) {
-      reasons.push(`${d.days_since_activity}d since activity`);
+      reasons.push(`${d.days_since_activity}d since contact`);
     } else {
-      reasons.push("No visit logged");
+      reasons.push("No contact logged");
     }
     if (d.zone !== anchorZone) reasons.push(ZONE_LABELS[d.zone]);
     if (anchorFacilityIds.has(d.facility_id)) {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { outcomeUpdatesLastVisit } from "@/lib/visitOutcomes";
+import { outcomeUpdatesLastContact, outcomeUpdatesLastVisit } from "@/lib/visitOutcomes";
 import { getSupabase } from "@/lib/supabase";
 
 export async function POST(request: Request) {
@@ -12,25 +12,48 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { doctorId, outcome, note } = body as {
+  const { doctorId, outcome, note, tags, outcomes } = body as {
     doctorId?: string;
     outcome?: string;
     note?: string;
+    tags?: string[];
+    outcomes?: string[];
   };
 
-  if (!doctorId || !outcome) {
+  if (!doctorId) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  const { data: visit, error: visitError } = await supabase
+  const normalizedTags = Array.from(
+    new Set((tags ?? []).map((tag) => tag.trim()).filter(Boolean)),
+  );
+
+  const normalizedOutcomes = Array.from(
+    new Set((outcomes ?? []).map((value) => value.trim()).filter(Boolean)),
+  );
+
+  if (!outcome && normalizedOutcomes.length === 0) {
+    return NextResponse.json({ error: "At least one outcome is required" }, { status: 400 });
+  }
+
+  const outcomesToInsert = Array.from(
+    new Set(
+      [outcome, ...normalizedOutcomes, ...normalizedTags].filter(
+        (value): value is string => Boolean(value),
+      ),
+    ),
+  );
+
+  const inserts = outcomesToInsert.map((value) => ({
+    doctor_id: doctorId,
+    outcome: value,
+    note: note ?? null,
+  }));
+
+  const { data: visits, error: visitError } = await supabase
     .from("visits")
-    .insert({
-      doctor_id: doctorId,
-      outcome,
-      note: note ?? null,
-    })
-    .select("id")
-    .single();
+    .insert(inserts)
+    .select("id,outcome");
 
   if (visitError) {
     return NextResponse.json({ error: visitError.message }, { status: 500 });
@@ -43,7 +66,10 @@ export async function POST(request: Request) {
     });
   }
 
-  if (outcome === "order_obtained") {
+  const shouldCreateOrder = outcomesToInsert.includes("order_obtained");
+  const primaryVisitId = visits?.[0]?.id;
+
+  if (shouldCreateOrder) {
     const { data: doctor } = await supabase
       .from("doctors")
       .select("facility_id")
@@ -53,7 +79,7 @@ export async function POST(request: Request) {
     await supabase.from("orders").insert({
       doctor_id: doctorId,
       facility_id: doctor?.facility_id ?? null,
-      visit_id: visit.id,
+      visit_id: primaryVisitId ?? null,
       status: "pending",
       pipeline_stage: "order_received",
       source: "visit_log",
@@ -63,8 +89,11 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    visitId: visit.id,
-    updatesLastVisit: outcomeUpdatesLastVisit(outcome),
-    createdOrder: outcome === "order_obtained",
+    visitId: primaryVisitId ?? null,
+    updatesLastVisit: outcomesToInsert.some((value) => outcomeUpdatesLastVisit(value)),
+    updatesLastContact: outcomesToInsert.some((value) =>
+      outcomeUpdatesLastContact(value),
+    ),
+    createdOrder: shouldCreateOrder,
   });
 }

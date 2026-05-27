@@ -119,18 +119,168 @@ function cityFromAddress(address: string): string | null {
   return null;
 }
 
+export type DoctorCsvFormat = "relationships" | "prospecting_targets";
+
+export function parseCsvRawRows(csvText: string): string[][] {
+  const lines = csvText
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((line) => line.trim().length > 0);
+
+  return lines.map((line) => parseCsvLine(line));
+}
+
+export function detectDoctorCsvFormat(csvText: string): DoctorCsvFormat {
+  const rows = parseCsvRawRows(csvText);
+  const header = rows[0]?.map((c) => c.trim().toLowerCase()) ?? [];
+  if (header.includes("facility") && header.includes("doctor name")) {
+    return "relationships";
+  }
+  return "prospecting_targets";
+}
+
+function looksLikeStreetAddress(value: string): boolean {
+  const v = value.trim();
+  if (!v) return false;
+  if (/\d{5}/.test(v)) return true;
+  if (/\b(st|ste|suite|rd|dr|blvd|ave|hwy|parkway)\b/i.test(v)) return true;
+  if (/\d+\s+\w/.test(v)) return true;
+  return false;
+}
+
+function locationToCity(location: string): string | null {
+  const m = /^(.+?)\s*\(/.exec(location);
+  if (m?.[1]) return m[1].trim();
+  return location.trim() || null;
+}
+
+/** Prospecting tab (targets / referrals) — no header row, different columns. */
+export function mapProspectingTargetTabRows(
+  rawRows: string[][],
+): ProspectingImportRow[] {
+  const out: ProspectingImportRow[] = [];
+
+  for (const row of rawRows) {
+    const cells = row.map((c) => c.trim());
+    if (!cells.some(Boolean)) continue;
+
+    const c0 = cells[0] ?? "";
+    const c1 = cells[1] ?? "";
+    const c2 = cells[2] ?? "";
+    const c4 = cells[4] ?? "";
+    const status = cells[7] ?? "";
+
+    const isTargetRow = status.includes("8. Target");
+    const isReferralRow =
+      c0.startsWith("Dr.") ||
+      c0 === "Smedley" ||
+      c0 === "Halloran again";
+
+    if (!isTargetRow && !isReferralRow) continue;
+    if (c0.toLowerCase().includes("if i don't")) continue;
+
+    let facilityName: string;
+    let doctorName: string;
+    let locationLabel: string | null = null;
+    let address: string;
+    let primaryFocus: string | null = null;
+    let rowStatus = "8. Target";
+    let interactionNotes: string | null = null;
+
+    if (isTargetRow) {
+      facilityName = c0;
+      doctorName = c1;
+      locationLabel = c2 || null;
+      primaryFocus = c4 || null;
+      rowStatus = status || "8. Target";
+      if (looksLikeStreetAddress(c4)) {
+        address = c4;
+        primaryFocus = cells[3] || null;
+      } else if (locationLabel) {
+        address = `${facilityName}, ${locationLabel}, TX`;
+      } else {
+        address = `${facilityName}, TX`;
+      }
+    } else {
+      doctorName = c0;
+      facilityName = "Unknown facility";
+      interactionNotes = c1 || null;
+      if (looksLikeStreetAddress(c4)) {
+        address = c4;
+      } else if (c4) {
+        address = c4;
+        interactionNotes = [c1, c4].filter(Boolean).join(" · ");
+      } else {
+        address = "Address needed — update on doctor profile";
+      }
+      rowStatus = "8. Target";
+    }
+
+    if (!doctorName) continue;
+
+    const city =
+      cityFromAddress(address) ??
+      (locationLabel ? locationToCity(locationLabel) : null);
+
+    out.push({
+      facilityName,
+      doctorName,
+      locationLabel,
+      address,
+      primaryFocus,
+      decisionMakers: null,
+      otherNames: null,
+      status: rowStatus,
+      lunchScheduled: false,
+      lunchDate: null,
+      priority: "Medium",
+      frontDeskIn: null,
+      marketingKit: null,
+      followUpDate: null,
+      history: null,
+      officeVibe: null,
+      frontDeskNotes: null,
+      interactionNotes,
+      competitorNotes: null,
+      otherNotes: null,
+      lunchNotes: null,
+      lunchOrder: null,
+      followUpLunch: null,
+      city,
+    });
+  }
+
+  return out;
+}
+
+export function mapDoctorCsv(csvText: string): ProspectingImportRow[] {
+  const format = detectDoctorCsvFormat(csvText);
+  if (format === "relationships") {
+    return mapProspectingRows(parseCsv(csvText));
+  }
+  return mapProspectingTargetTabRows(parseCsvRawRows(csvText));
+}
+
 export function mapProspectingRows(csvRows: CsvRow[]): ProspectingImportRow[] {
   return csvRows
-    .map((r) => {
-      const facilityName = r["Facility"]?.trim() ?? "";
-      const doctorName = r["Doctor Name"]?.trim() ?? "";
-      const address = r["Address"]?.trim() ?? "";
-      if (!facilityName || !doctorName || !address) return null;
+    .map((r, index) => {
+      const rowHasAnyContent = Object.values(r).some((v) => v?.trim());
+      if (!rowHasAnyContent) return null;
+
+      const facilityName = r["Facility"]?.trim() || "Unknown facility";
+      const doctorName = r["Doctor Name"]?.trim() || `Unknown doctor ${index + 1}`;
+      const rawAddress = r["Address"]?.trim() || "";
+      const locationLabel = r["Location"]?.trim() || null;
+      const address =
+        rawAddress ||
+        (locationLabel
+          ? `${facilityName}, ${locationLabel}, TX`
+          : `${facilityName}, TX`);
 
       return {
         facilityName,
         doctorName,
-        locationLabel: r["Location"]?.trim() || null,
+        locationLabel,
         address,
         primaryFocus: r["Primary Focus"]?.trim() || null,
         decisionMakers: r["Decision Makers"]?.trim() || null,
@@ -159,4 +309,27 @@ export function mapProspectingRows(csvRows: CsvRow[]): ProspectingImportRow[] {
 
 export function zoneForRow(row: ProspectingImportRow) {
   return inferZone(row.city, `${row.locationLabel ?? ""} ${row.address}`.trim());
+}
+
+export function dedupeImportRows(
+  rows: ProspectingImportRow[],
+): ProspectingImportRow[] {
+  const seen = new Set<string>();
+  const out: ProspectingImportRow[] = [];
+  for (const row of rows) {
+    const key = `${row.facilityName.toLowerCase()}::${row.doctorName.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
+export function mergeDoctorImportCsv(
+  relationshipsCsv: string,
+  prospectingTargetsCsv: string,
+): ProspectingImportRow[] {
+  const rel = mapProspectingRows(parseCsv(relationshipsCsv));
+  const targets = mapProspectingTargetTabRows(parseCsvRawRows(prospectingTargetsCsv));
+  return dedupeImportRows([...rel, ...targets]);
 }

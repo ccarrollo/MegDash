@@ -59,6 +59,8 @@ create table if not exists doctors (
   manual_last_visit_date date,
   follow_up_lunch text,
   interaction_notes text,
+  photo_path text,
+  daily_queue_hidden boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -199,16 +201,16 @@ select
   f.lng,
   f.office_vibe as facility_office_vibe,
   coalesce(d.manual_last_visit_date::timestamptz, v.last_visit_at) as last_visit_at,
-  a.last_activity_at,
+  c.last_contact_at,
   (d.manual_last_visit_date is not null) as is_last_visit_overridden,
   case
     when coalesce(d.manual_last_visit_date::timestamptz, v.last_visit_at) is null then null
     else (current_date - coalesce(d.manual_last_visit_date::timestamptz, v.last_visit_at)::date)
   end as days_since_visit,
   case
-    when a.last_activity_at is null then null
-    else (current_date - a.last_activity_at::date)
-  end as days_since_activity
+    when c.last_contact_at is null then null
+    else (current_date - c.last_contact_at::date)
+  end as days_since_contact
 from doctors d
 join facilities f on f.id = d.facility_id
 left join lateral (
@@ -221,13 +223,26 @@ left join lateral (
       'lunch_completed',
       'coffee_dropoff',
       'office_visit',
+      'in_person_visit',
       'visited',
       'visit',
       'lunch'
     )
 ) v on true
 left join lateral (
-  select max(visited_at) as last_activity_at
+  select max(visited_at) as last_contact_at
   from visits
   where doctor_id = d.id
-) a on true;
+    and outcome in (
+      'visited_success',
+      'visited_brief',
+      'lunch_completed',
+      'coffee_dropoff',
+      'office_visit',
+      'in_person_visit',
+      'remote_contact',
+      'visited',
+      'visit',
+      'lunch'
+    )
+) c on true;

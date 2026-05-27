@@ -42,6 +42,34 @@ function logQueryError(label: string, error: unknown) {
 const DEFAULT_PROSPECT_COUNT = 6;
 const DEFAULT_INVENTORY_IDS = ["5313", "5314", "5315", "5302", "5303"];
 
+/** View may omit photo_path until recreated; always read from doctors table. */
+async function mergeDoctorPhotoPaths(
+  doctors: DoctorRow[],
+): Promise<DoctorRow[]> {
+  const supabase = getSupabase();
+  if (!supabase || doctors.length === 0) return doctors;
+
+  const ids = doctors.map((d) => d.id);
+  const { data, error } = await supabase
+    .from("doctors")
+    .select("id, photo_path")
+    .in("id", ids);
+
+  if (error) {
+    logQueryError("mergeDoctorPhotoPaths", error);
+    return doctors;
+  }
+
+  const byId = new Map(
+    (data ?? []).map((row) => [row.id as string, row.photo_path as string | null]),
+  );
+
+  return doctors.map((d) => ({
+    ...d,
+    photo_path: byId.get(d.id) ?? d.photo_path ?? null,
+  }));
+}
+
 export async function fetchDoctors(): Promise<DoctorRow[]> {
   const supabase = getSupabase();
   if (!supabase) return [];
@@ -56,7 +84,7 @@ export async function fetchDoctors(): Promise<DoctorRow[]> {
     return [];
   }
 
-  return (data ?? []) as DoctorRow[];
+  return mergeDoctorPhotoPaths((data ?? []) as DoctorRow[]);
 }
 
 export async function fetchFacilities(): Promise<FacilityRow[]> {
@@ -91,7 +119,10 @@ export async function fetchDoctorById(id: string): Promise<DoctorRow | null> {
     return null;
   }
 
-  return (data as DoctorRow) ?? null;
+  const doctor = (data as DoctorRow) ?? null;
+  if (!doctor) return null;
+  const [merged] = await mergeDoctorPhotoPaths([doctor]);
+  return merged;
 }
 
 export async function fetchDoctorVisits(id: string): Promise<VisitRow[]> {
@@ -309,12 +340,13 @@ export async function getPlanForDate(
   const anchors = enrichAnchors(mergedAnchors, doctors);
   const count = prospectCount ?? settings.prospect_count ?? DEFAULT_PROSPECT_COUNT;
   const autoSuggestions = settings.auto_suggestions !== false;
+  const queueEligibleDoctors = doctors.filter((d) => !d.daily_queue_hidden);
 
   let anchorZone: TerritoryZone;
   let stops: PlannedStop[];
 
   if (autoSuggestions) {
-    const built = buildDailyPlan(doctors, anchors, {
+    const built = buildDailyPlan(queueEligibleDoctors, anchors, {
       planDate: date,
       lunchesOnDate,
       prospectCount: count,

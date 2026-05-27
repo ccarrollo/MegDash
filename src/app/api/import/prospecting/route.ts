@@ -1,10 +1,54 @@
 import { NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
 import {
-  mapProspectingRows,
-  parseCsv,
+  mapDoctorCsv,
+  mergeDoctorImportCsv,
+  type ProspectingImportRow,
   zoneForRow,
 } from "@/lib/importProspecting";
+
+async function resolveFacilityId(
+  supabase: NonNullable<ReturnType<typeof getSupabase>>,
+  facilityMap: Map<string, string>,
+  row: ProspectingImportRow,
+) {
+  const key = `${row.facilityName}::${row.address}`.toLowerCase();
+  if (facilityMap.has(key)) return facilityMap.get(key)!;
+
+  const { data: existing, error: existingError } = await supabase
+    .from("facilities")
+    .select("id")
+    .eq("name", row.facilityName)
+    .eq("address", row.address)
+    .maybeSingle();
+
+  if (existingError) throw new Error(existingError.message);
+
+  if (existing?.id) {
+    facilityMap.set(key, existing.id);
+    return existing.id;
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("facilities")
+    .insert({
+      name: row.facilityName,
+      address: row.address,
+      city: row.city,
+      location_label: row.locationLabel,
+      zone: zoneForRow(row),
+      office_vibe: row.officeVibe,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !inserted) {
+    throw new Error(insertError?.message ?? "Failed to insert facility");
+  }
+
+  facilityMap.set(key, inserted.id);
+  return inserted.id;
+}
 
 export async function POST(request: Request) {
   const supabase = getSupabase();
@@ -17,21 +61,33 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     csv?: string;
+    relationshipsCsv?: string;
+    prospectingTargetsCsv?: string;
     replaceExisting?: boolean;
+    mergeOnly?: boolean;
   };
 
-  if (!body.csv?.trim()) {
-    return NextResponse.json({ error: "CSV content is required" }, { status: 400 });
-  }
+  let rows: ProspectingImportRow[] = [];
 
-  const parsed = parseCsv(body.csv);
-  const rows = mapProspectingRows(parsed);
+  if (body.relationshipsCsv?.trim() && body.prospectingTargetsCsv?.trim()) {
+    rows = mergeDoctorImportCsv(
+      body.relationshipsCsv,
+      body.prospectingTargetsCsv,
+    );
+  } else if (body.csv?.trim()) {
+    rows = mapDoctorCsv(body.csv);
+  } else {
+    return NextResponse.json(
+      { error: "CSV content is required (or both Relationships + Prospecting tab CSVs)" },
+      { status: 400 },
+    );
+  }
 
   if (!rows.length) {
     return NextResponse.json(
       {
         error:
-          "No valid rows found. Ensure CSV has Facility, Doctor Name, and Address columns.",
+          "No valid rows found. Use Relationships CSV (Facility, Doctor Name, Address) and/or Prospecting tab CSV.",
       },
       { status: 400 },
     );
@@ -47,50 +103,19 @@ export async function POST(request: Request) {
 
   const facilityMap = new Map<string, string>();
 
-  for (const row of rows) {
-    const key = `${row.facilityName}::${row.address}`.toLowerCase();
-    if (facilityMap.has(key)) continue;
-
-    const { data: existing, error: existingError } = await supabase
-      .from("facilities")
-      .select("id")
-      .eq("name", row.facilityName)
-      .eq("address", row.address)
-      .maybeSingle();
-
-    if (existingError) {
-      return NextResponse.json({ error: existingError.message }, { status: 500 });
+  try {
+    for (const row of rows) {
+      await resolveFacilityId(supabase, facilityMap, row);
     }
-
-    if (existing?.id) {
-      facilityMap.set(key, existing.id);
-      continue;
-    }
-
-    const { data: inserted, error: insertError } = await supabase
-      .from("facilities")
-      .insert({
-        name: row.facilityName,
-        address: row.address,
-        city: row.city,
-        location_label: row.locationLabel,
-        zone: zoneForRow(row),
-        office_vibe: row.officeVibe,
-      })
-      .select("id")
-      .single();
-
-    if (insertError || !inserted) {
-      return NextResponse.json(
-        { error: insertError?.message ?? "Failed to insert facility" },
-        { status: 500 },
-      );
-    }
-
-    facilityMap.set(key, inserted.id);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Facility import failed" },
+      { status: 500 },
+    );
   }
 
   let doctorsInserted = 0;
+  let doctorsSkipped = 0;
   let lunchesInserted = 0;
   let notesInserted = 0;
 
@@ -98,6 +123,20 @@ export async function POST(request: Request) {
     const facilityKey = `${row.facilityName}::${row.address}`.toLowerCase();
     const facilityId = facilityMap.get(facilityKey);
     if (!facilityId) continue;
+
+    if (body.mergeOnly || !body.replaceExisting) {
+      const { data: existingDoctor } = await supabase
+        .from("doctors")
+        .select("id")
+        .eq("facility_id", facilityId)
+        .eq("name", row.doctorName)
+        .maybeSingle();
+
+      if (existingDoctor) {
+        doctorsSkipped += 1;
+        continue;
+      }
+    }
 
     const { data: doctor, error: doctorError } = await supabase
       .from("doctors")
@@ -118,6 +157,7 @@ export async function POST(request: Request) {
         front_desk_notes: row.frontDeskNotes,
         competitor_notes: row.competitorNotes,
         follow_up_lunch: row.followUpLunch,
+        interaction_notes: row.interactionNotes,
       })
       .select("id")
       .single();
@@ -169,8 +209,10 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
+    totalRows: rows.length,
     facilities: facilityMap.size,
     doctors: doctorsInserted,
+    doctorsSkipped,
     lunches: lunchesInserted,
     notes: notesInserted,
   });

@@ -33,11 +33,17 @@ export type DoctorRow = {
   lng: number | null;
   facility_office_vibe?: string | null;
   last_visit_at: string | null;
+  last_contact_at?: string | null;
+  /** @deprecated use last_contact_at */
   last_activity_at?: string | null;
   is_last_visit_overridden?: boolean;
   manual_last_visit_date?: string | null;
   days_since_visit: number | null;
+  days_since_contact?: number | null;
+  /** @deprecated use days_since_contact */
   days_since_activity?: number | null;
+  photo_path?: string | null;
+  daily_queue_hidden?: boolean;
 };
 
 export type PlannedStop = {

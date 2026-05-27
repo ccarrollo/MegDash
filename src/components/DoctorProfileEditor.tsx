@@ -35,6 +35,9 @@ export function DoctorProfileEditor({
   const [status, setStatus] = useState(doctor.status);
   const [priority, setPriority] = useState(doctor.priority);
   const [followUpDate, setFollowUpDate] = useState(doctor.follow_up_date ?? "");
+  const [dailyQueueHidden, setDailyQueueHidden] = useState(
+    doctor.daily_queue_hidden ?? false,
+  );
   const [lunchDate, setLunchDate] = useState("");
   const [restaurant, setRestaurant] = useState("");
   const [lunchNotes, setLunchNotes] = useState("");
@@ -64,7 +67,12 @@ export function DoctorProfileEditor({
       const res = await fetch(`/api/doctors/${doctor.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, priority, followUpDate: followUpDate || null }),
+        body: JSON.stringify({
+          status,
+          priority,
+          followUpDate: followUpDate || null,
+          dailyQueueHidden,
+        }),
       });
       if (!res.ok) throw new Error("save failed");
       router.refresh();
@@ -137,6 +145,14 @@ export function DoctorProfileEditor({
             onChange={(e) => setFollowUpDate(e.target.value)}
             className="rounded border px-3 py-2 text-sm"
           />
+          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={dailyQueueHidden}
+              onChange={(e) => setDailyQueueHidden(e.target.checked)}
+            />
+            Don't show in daily queue
+          </label>
           <button
             type="button"
             disabled={saving}

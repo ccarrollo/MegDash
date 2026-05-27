@@ -10,6 +10,7 @@ import {
 import type { DoctorRow, TerritoryZone } from "@/lib/types";
 import { ZONE_LABELS } from "@/lib/zones";
 import { AddToTodayPlanButton } from "./AddToTodayPlanButton";
+import { DoctorPhoto } from "./DoctorPhoto";
 import { LogVisitForm } from "./LogVisitForm";
 import { ListSearchBar } from "./ListSearchBar";
 import { OverrideVisitDateForm } from "./OverrideVisitDateForm";
@@ -42,15 +43,19 @@ export function DoctorsListClient({
   const [zone, setZone] = useState("");
   const [priority, setPriority] = useState("");
   const [hasLunchOnly, setHasLunchOnly] = useState(false);
+  const [queueVisibility, setQueueVisibility] = useState<
+    "all" | "in_queue" | "excluded"
+  >("all");
 
   const filtered = useMemo(() => {
     const list = filterDoctors(doctors, query, {
       zone: zone || undefined,
       priority: priority || undefined,
       hasLunch: hasLunchOnly,
+      queueVisibility,
     });
     return sortDoctors(list, sortKey);
-  }, [doctors, query, sortKey, zone, priority, hasLunchOnly]);
+  }, [doctors, query, sortKey, zone, priority, hasLunchOnly, queueVisibility]);
 
   const zones = useMemo(() => {
     const set = new Set(doctors.map((d) => d.zone));
@@ -106,6 +111,19 @@ export function DoctorsListClient({
           />
           Has lunch date
         </label>
+        <select
+          value={queueVisibility}
+          onChange={(e) =>
+            setQueueVisibility(
+              e.target.value as "all" | "in_queue" | "excluded",
+            )
+          }
+          className="rounded-lg border border-slate-300 dark:border-slate-600 px-2 py-1.5 text-sm"
+        >
+          <option value="all">All queue visibility</option>
+          <option value="in_queue">In daily queue</option>
+          <option value="excluded">Excluded from daily queue</option>
+        </select>
       </div>
       <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
         {filtered.length} of {doctors.length} doctors
@@ -117,26 +135,42 @@ export function DoctorsListClient({
         <ul className="space-y-3">
           {filtered.map((d) => {
             const preview = notePreview(d);
+            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.address)}`;
             return (
               <li
                 key={d.id}
                 className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm dark:shadow-slate-950/50"
               >
                 <div className="flex justify-between gap-2">
-                  <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-1 gap-3">
+                    <DoctorPhoto
+                      doctorId={d.id}
+                      doctorName={d.name}
+                      photoPath={d.photo_path}
+                      size="sm"
+                    />
+                    <div className="min-w-0 flex-1">
                     <Link
                       href={`/doctors/${d.id}`}
-                      className="font-semibold text-brand-700 hover:underline"
+                      className="font-semibold text-brand-700 hover:underline dark:text-brand-400"
                     >
                       {d.name}
                     </Link>
                     <p className="text-sm text-slate-600 dark:text-slate-400 dark:text-slate-400">{d.facility_name}</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">{d.address}</p>
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-brand-600 underline-offset-2 hover:underline dark:text-brand-400"
+                    >
+                      {d.address}
+                    </a>
                     {preview && (
                       <p className="mt-2 line-clamp-2 text-xs text-slate-600 dark:text-slate-400 dark:text-slate-400">
                         {preview}
                       </p>
                     )}
+                    </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2 text-xs">
                     <AddToTodayPlanButton
@@ -158,10 +192,15 @@ export function DoctorsListClient({
                     </p>
                     <p className="font-medium text-slate-700 dark:text-slate-300">
                       {d.days_since_visit != null
-                        ? `${d.days_since_visit}d ago`
+                        ? `${d.days_since_visit}d visit`
+                        : "No visit"}
+                    </p>
+                    <p className="font-medium text-slate-700 dark:text-slate-300">
+                      {d.days_since_contact != null
+                        ? `${d.days_since_contact}d contact`
                         : d.days_since_activity != null
-                          ? `${d.days_since_activity}d activity`
-                          : "No visit"}
+                          ? `${d.days_since_activity}d contact`
+                          : "No contact"}
                     </p>
                   </div>
                 </div>

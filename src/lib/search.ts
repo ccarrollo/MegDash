@@ -16,12 +16,23 @@ export function matchesQuery(text: string, query: string): boolean {
 export function filterDoctors(
   doctors: DoctorRow[],
   query: string,
-  filters: { zone?: string; priority?: string; hasLunch?: boolean },
+  filters: {
+    zone?: string;
+    priority?: string;
+    hasLunch?: boolean;
+    queueVisibility?: "all" | "in_queue" | "excluded";
+  },
 ): DoctorRow[] {
   return doctors.filter((d) => {
     if (filters.zone && d.zone !== filters.zone) return false;
     if (filters.priority && d.priority !== filters.priority) return false;
     if (filters.hasLunch && !d.lunch_date) return false;
+    if (filters.queueVisibility === "in_queue" && d.daily_queue_hidden) {
+      return false;
+    }
+    if (filters.queueVisibility === "excluded" && !d.daily_queue_hidden) {
+      return false;
+    }
     if (!query.trim()) return true;
     const haystack = [
       d.name,

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DoctorPhoto } from "@/components/DoctorPhoto";
 import { DoctorProfileEditor } from "@/components/DoctorProfileEditor";
 import { EditableDoctorNotes } from "@/components/EditableDoctorNotes";
 import {
@@ -14,23 +15,33 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-function visitLabel(doctor: {
+function visitCounterLabel(doctor: {
   days_since_visit: number | null;
-  days_since_activity?: number | null;
 }) {
   if (doctor.days_since_visit != null) {
     return `${doctor.days_since_visit}d since last visit`;
   }
-  if (doctor.days_since_activity != null) {
-    return `${doctor.days_since_activity}d since activity`;
-  }
   return "No visit logged";
+}
+
+function contactCounterLabel(doctor: {
+  days_since_contact?: number | null;
+  days_since_activity?: number | null;
+}) {
+  if (doctor.days_since_contact != null) {
+    return `${doctor.days_since_contact}d since last contact`;
+  }
+  if (doctor.days_since_activity != null) {
+    return `${doctor.days_since_activity}d since last contact`;
+  }
+  return "No contact logged";
 }
 
 export default async function DoctorProfilePage({ params }: Props) {
   const { id } = await params;
   const doctor = await fetchDoctorById(id);
   if (!doctor) return notFound();
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(doctor.address)}`;
 
   const [visits, notes, lunches] = await Promise.all([
     fetchDoctorVisits(id),
@@ -44,9 +55,24 @@ export default async function DoctorProfilePage({ params }: Props) {
         ← Back to doctors
       </Link>
       <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+        <div className="flex gap-4">
+          <DoctorPhoto
+            doctorId={doctor.id}
+            doctorName={doctor.name}
+            photoPath={doctor.photo_path}
+            size="lg"
+          />
+          <div className="min-w-0 flex-1">
         <h1 className="text-xl font-bold">{doctor.name}</h1>
         <p className="text-sm text-slate-600 dark:text-slate-400 dark:text-slate-400">{doctor.facility_name}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">{doctor.address}</p>
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-brand-600 underline-offset-2 hover:underline dark:text-brand-400"
+        >
+          {doctor.address}
+        </a>
         {doctor.lunch_date && (
           <p className="mt-2 text-sm text-emerald-700">
             Lunch scheduled: {doctor.lunch_date}
@@ -58,8 +84,18 @@ export default async function DoctorProfilePage({ params }: Props) {
           <span className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-1">
             {ZONE_LABELS[doctor.zone]}
           </span>
-          <span className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-1">{visitLabel(doctor)}</span>
+          <span className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-1">
+            {visitCounterLabel(doctor)}
+          </span>
+          <span className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-1">
+            {contactCounterLabel(doctor)}
+          </span>
         </div>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          Tap the photo to open it full screen — helpful for recognizing the office or doctor.
+        </p>
       </section>
 
       <EditableDoctorNotes doctor={doctor} notes={notes} />

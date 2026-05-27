@@ -29,9 +29,11 @@ export async function PATCH(request: Request, ctx: Params) {
     orderHistory?: string | null;
     interaction_notes?: string | null;
     interactionNotes?: string | null;
+    daily_queue_hidden?: boolean;
+    dailyQueueHidden?: boolean;
   };
 
-  const payload: Record<string, string | null> = {};
+  const payload: Record<string, string | boolean | null> = {};
   if (typeof body.status === "string") payload.status = body.status.trim();
   if (typeof body.priority === "string") payload.priority = body.priority.trim();
   if ("followUpDate" in body) payload.follow_up_date = body.followUpDate || null;
@@ -48,6 +50,12 @@ export async function PATCH(request: Request, ctx: Params) {
   }
   if ("interactionNotes" in body) {
     payload.interaction_notes = body.interactionNotes ?? null;
+  }
+  if ("daily_queue_hidden" in body) {
+    payload.daily_queue_hidden = Boolean(body.daily_queue_hidden);
+  }
+  if ("dailyQueueHidden" in body) {
+    payload.daily_queue_hidden = Boolean(body.dailyQueueHidden);
   }
 
   const { error } = await supabase.from("doctors").update(payload).eq("id", id);
