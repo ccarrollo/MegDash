@@ -35,7 +35,7 @@ export default async function TodayPage() {
       {stops.length === 0 ? (
         <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
           {setup.supabase
-            ? "No stops yet. Import doctors from the sheet or add them in Supabase."
+            ? "No stops yet. Use the Import tab to load her Prospecting CSV."
             : "Connect Supabase, then import her Prospecting tab."}
         </p>
       ) : (
