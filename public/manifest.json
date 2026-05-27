@@ -1,0 +1,10 @@
+{
+  "name": "Meg Field",
+  "short_name": "Meg Field",
+  "description": "Daily prospecting plan",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "orientation": "portrait"
+}

@@ -1,0 +1,12 @@
+# Netlify UI often sets Publish directory to "." (repo root) — that breaks the Next.js plugin.
+# This file overrides the UI: publish must differ from base.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
