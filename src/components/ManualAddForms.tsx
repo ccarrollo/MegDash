@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DoctorRow, FacilityRow } from "@/lib/types";
 
 export function ManualAddForms({
@@ -21,16 +21,52 @@ export function ManualAddForms({
   const [facilityLocation, setFacilityLocation] = useState("");
 
   const [doctorFacilityId, setDoctorFacilityId] = useState(facilities[0]?.id ?? "");
+  const [doctorFacilityQuery, setDoctorFacilityQuery] = useState("");
   const [doctorName, setDoctorName] = useState("");
   const [doctorFocus, setDoctorFocus] = useState("");
   const [doctorStatus, setDoctorStatus] = useState("2. Introduced");
-  const [doctorPriority, setDoctorPriority] = useState("Medium");
   const [doctorFollowup, setDoctorFollowup] = useState("");
 
   const [lunchDoctorId, setLunchDoctorId] = useState(doctors[0]?.id ?? "");
+  const [lunchDoctorQuery, setLunchDoctorQuery] = useState("");
   const [lunchDate, setLunchDate] = useState("");
+  const [lunchTime, setLunchTime] = useState("12:00");
   const [lunchOrder, setLunchOrder] = useState("");
   const [lunchNotes, setLunchNotes] = useState("");
+
+  useEffect(() => {
+    if (
+      (!doctorFacilityId || !facilities.some((f) => f.id === doctorFacilityId)) &&
+      facilities[0]?.id
+    ) {
+      setDoctorFacilityId(facilities[0].id);
+    }
+  }, [doctorFacilityId, facilities]);
+
+  useEffect(() => {
+    if (
+      (!lunchDoctorId || !doctors.some((d) => d.id === lunchDoctorId)) &&
+      doctors[0]?.id
+    ) {
+      setLunchDoctorId(doctors[0].id);
+    }
+  }, [lunchDoctorId, doctors]);
+
+  const filteredFacilities = useMemo(() => {
+    const q = doctorFacilityQuery.trim().toLowerCase();
+    if (!q) return facilities;
+    return facilities.filter((f) =>
+      `${f.name} ${f.address}`.toLowerCase().includes(q),
+    );
+  }, [doctorFacilityQuery, facilities]);
+
+  const filteredDoctors = useMemo(() => {
+    const q = lunchDoctorQuery.trim().toLowerCase();
+    if (!q) return doctors;
+    return doctors.filter((d) =>
+      `${d.name} ${d.facility_name}`.toLowerCase().includes(q),
+    );
+  }, [lunchDoctorQuery, doctors]);
 
   async function addFacility() {
     if (!facilityName || !facilityAddress) return;
@@ -47,15 +83,22 @@ export function ManualAddForms({
           locationLabel: facilityLocation || null,
         }),
       });
-      if (!res.ok) throw new Error("Failed to add facility");
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? "Failed to add facility");
+      }
+      const data = (await res.json()) as { facility?: { id: string } };
       setFacilityName("");
       setFacilityAddress("");
       setFacilityCity("");
       setFacilityLocation("");
+      if (data.facility?.id) {
+        setDoctorFacilityId(data.facility.id);
+      }
       setMsg("Facility added.");
       router.refresh();
-    } catch {
-      setMsg("Could not add facility.");
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Could not add facility.");
     } finally {
       setLoading(false);
     }
@@ -74,18 +117,24 @@ export function ManualAddForms({
           name: doctorName,
           primaryFocus: doctorFocus || null,
           status: doctorStatus,
-          priority: doctorPriority,
           followUpDate: doctorFollowup || null,
         }),
       });
-      if (!res.ok) throw new Error("Failed to add doctor");
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? "Failed to add doctor");
+      }
+      const data = (await res.json()) as { doctor?: { id: string } };
       setDoctorName("");
       setDoctorFocus("");
       setDoctorFollowup("");
+      if (data.doctor?.id) {
+        setLunchDoctorId(data.doctor.id);
+      }
       setMsg("Doctor added.");
       router.refresh();
-    } catch {
-      setMsg("Could not add doctor.");
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Could not add doctor.");
     } finally {
       setLoading(false);
     }
@@ -104,19 +153,24 @@ export function ManualAddForms({
           doctorId: lunchDoctorId,
           facilityId: doctor?.facility_id ?? null,
           lunchDate,
+          startTime: lunchTime,
           lunchOrder: lunchOrder || null,
           foodNotes: lunchNotes || null,
           status: "scheduled",
         }),
       });
-      if (!res.ok) throw new Error("Failed to add lunch");
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? "Failed to add lunch");
+      }
       setLunchDate("");
+      setLunchTime("12:00");
       setLunchOrder("");
       setLunchNotes("");
       setMsg("Lunch added.");
       router.refresh();
-    } catch {
-      setMsg("Could not add lunch.");
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Could not add lunch.");
     } finally {
       setLoading(false);
     }
@@ -124,9 +178,9 @@ export function ManualAddForms({
 
   return (
     <div className="space-y-4">
-      {msg && <p className="text-sm text-slate-600 dark:text-slate-400 dark:text-slate-400">{msg}</p>}
+      {msg && <p className="text-sm text-violet-800 dark:text-slate-400">{msg}</p>}
 
-      <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+      <section className="rounded-xl border border-violet-200 dark:border-slate-700 bg-fuchsia-50 dark:bg-slate-900 p-4">
         <h2 className="font-semibold">Add facility</h2>
         <div className="mt-2 grid gap-2">
           <input
@@ -164,15 +218,21 @@ export function ManualAddForms({
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+      <section className="rounded-xl border border-violet-200 dark:border-slate-700 bg-fuchsia-50 dark:bg-slate-900 p-4">
         <h2 className="font-semibold">Add doctor</h2>
         <div className="mt-2 grid gap-2">
+          <input
+            className="rounded border px-3 py-2 text-sm"
+            placeholder="Search facilities…"
+            value={doctorFacilityQuery}
+            onChange={(e) => setDoctorFacilityQuery(e.target.value)}
+          />
           <select
             value={doctorFacilityId}
             onChange={(e) => setDoctorFacilityId(e.target.value)}
             className="rounded border px-3 py-2 text-sm"
           >
-            {facilities.map((f) => (
+            {filteredFacilities.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.name} — {f.address}
               </option>
@@ -190,28 +250,18 @@ export function ManualAddForms({
             value={doctorFocus}
             onChange={(e) => setDoctorFocus(e.target.value)}
           />
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              value={doctorStatus}
-              onChange={(e) => setDoctorStatus(e.target.value)}
-              className="rounded border px-3 py-2 text-sm"
-            >
-              <option>1. Active</option>
-              <option>2. Introduced</option>
-              <option>3. Got Card Only</option>
-              <option>4. No Card, FWD info</option>
-              <option>8. Target</option>
-            </select>
-            <select
-              value={doctorPriority}
-              onChange={(e) => setDoctorPriority(e.target.value)}
-              className="rounded border px-3 py-2 text-sm"
-            >
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
-          </div>
+          <select
+            value={doctorStatus}
+            onChange={(e) => setDoctorStatus(e.target.value)}
+            className="rounded border px-3 py-2 text-sm"
+          >
+            <option>1. Active</option>
+            <option>2. Introduced</option>
+            <option>3. Got Card Only</option>
+            <option>4. No Card, FWD info</option>
+            <option>8. Target</option>
+            <option>9. Archived</option>
+          </select>
           <input
             type="date"
             className="rounded border px-3 py-2 text-sm"
@@ -229,15 +279,21 @@ export function ManualAddForms({
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+      <section className="rounded-xl border border-violet-200 dark:border-slate-700 bg-fuchsia-50 dark:bg-slate-900 p-4">
         <h2 className="font-semibold">Add lunch</h2>
         <div className="mt-2 grid gap-2">
+          <input
+            className="rounded border px-3 py-2 text-sm"
+            placeholder="Search doctors…"
+            value={lunchDoctorQuery}
+            onChange={(e) => setLunchDoctorQuery(e.target.value)}
+          />
           <select
             value={lunchDoctorId}
             onChange={(e) => setLunchDoctorId(e.target.value)}
             className="rounded border px-3 py-2 text-sm"
           >
-            {doctors.map((d) => (
+            {filteredDoctors.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name} — {d.facility_name}
               </option>
@@ -249,7 +305,12 @@ export function ManualAddForms({
             onChange={(e) => setLunchDate(e.target.value)}
             className="rounded border px-3 py-2 text-sm"
           />
-          <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">Lunches are planned at 12:00 PM.</p>
+          <input
+            type="time"
+            value={lunchTime}
+            onChange={(e) => setLunchTime(e.target.value)}
+            className="rounded border px-3 py-2 text-sm"
+          />
           <input
             className="rounded border px-3 py-2 text-sm"
             placeholder="Lunch order"

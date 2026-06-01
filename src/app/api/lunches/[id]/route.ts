@@ -17,6 +17,7 @@ export async function PATCH(request: Request, ctx: Params) {
   const body = (await request.json()) as {
     lunchDate?: string;
     startTime?: string | null;
+    dateTbd?: boolean;
     lunchOrder?: string | null;
     restaurant?: string | null;
     foodNotes?: string | null;
@@ -24,11 +25,13 @@ export async function PATCH(request: Request, ctx: Params) {
     status?: string;
     headcount?: number | null;
     totalCost?: number | null;
+    doctorId?: string | null;
+    facilityId?: string | null;
   };
 
   const { data: existing, error: fetchErr } = await supabase
     .from("lunches")
-    .select("doctor_id, lunch_date")
+    .select("doctor_id, lunch_date, is_date_tbd")
     .eq("id", id)
     .single();
 
@@ -36,9 +39,11 @@ export async function PATCH(request: Request, ctx: Params) {
     return NextResponse.json({ error: "Lunch not found" }, { status: 404 });
   }
 
-  const payload: Record<string, string | number | null> = {};
+  const payload: Record<string, string | number | boolean | null> = {};
   if (body.lunchDate) payload.lunch_date = body.lunchDate;
-  payload.start_time = "12:00:00";
+  if ("startTime" in body) {
+    payload.start_time = body.startTime ? `${body.startTime}:00` : null;
+  }
   if ("lunchOrder" in body) payload.lunch_order = body.lunchOrder ?? null;
   if ("restaurant" in body) payload.restaurant = body.restaurant ?? null;
   if ("foodNotes" in body) payload.food_notes = body.foodNotes ?? null;
@@ -46,7 +51,17 @@ export async function PATCH(request: Request, ctx: Params) {
     payload.interaction_notes = body.interactionNotes ?? null;
   }
   if (typeof body.status === "string") payload.status = body.status;
+  if ("dateTbd" in body) {
+    payload.is_date_tbd = Boolean(body.dateTbd);
+    if (body.dateTbd) {
+      payload.status = "rescheduled";
+    }
+  }
   if ("headcount" in body) payload.headcount = body.headcount ?? null;
+  if ("facilityId" in body) payload.facility_id = body.facilityId ?? null;
+  if (body.doctorId && body.doctorId !== existing.doctor_id) {
+    payload.doctor_id = body.doctorId;
+  }
 
   if ("totalCost" in body) {
     const total = body.totalCost ?? null;
@@ -76,20 +91,47 @@ export async function PATCH(request: Request, ctx: Params) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const isDateTbd = body.dateTbd ?? existing.is_date_tbd ?? false;
   const newDate = body.lunchDate ?? existing.lunch_date;
-  if (existing.doctor_id && body.lunchDate) {
-    const doctorPatch: Record<string, string | boolean> = {
-      lunch_date: newDate,
+  const planDate = newDate ? String(newDate).slice(0, 10) : null;
+
+  if (
+    existing.doctor_id &&
+    body.doctorId &&
+    body.doctorId !== existing.doctor_id &&
+    planDate
+  ) {
+    await supabase
+      .from("doctors")
+      .update({ lunch_scheduled: false, lunch_date: null })
+      .eq("id", existing.doctor_id);
+    await supabase
+      .from("doctors")
+      .update({ lunch_scheduled: true, lunch_date: planDate })
+      .eq("id", body.doctorId);
+  }
+
+  if (
+    existing.doctor_id &&
+    ("lunchDate" in body || "status" in body || "dateTbd" in body)
+  ) {
+    const doctorPatch: Record<string, string | boolean | null> = {
+      lunch_date: isDateTbd ? null : newDate ?? null,
     };
     if (body.status === "cancelled") {
       doctorPatch.lunch_scheduled = false;
-    } else if (body.status === "scheduled" || body.status === "rescheduled") {
+    } else if (
+      body.status === "scheduled" ||
+      body.status === "rescheduled" ||
+      body.dateTbd
+    ) {
       doctorPatch.lunch_scheduled = true;
     }
+    const targetDoctorId = body.doctorId ?? existing.doctor_id;
     await supabase
       .from("doctors")
       .update(doctorPatch)
-      .eq("id", existing.doctor_id);
+      .eq("id", targetDoctorId);
   }
 
   return NextResponse.json({ ok: true });

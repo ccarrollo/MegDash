@@ -10,7 +10,7 @@ export default async function InventoryPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold">Inventory</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-violet-700 dark:text-slate-400">
           Track current count for each bone stim ID.
         </p>
       </div>

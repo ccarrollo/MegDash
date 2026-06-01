@@ -45,7 +45,6 @@ create table if not exists doctors (
   name text not null,
   primary_focus text,
   status text not null default '2. Introduced',
-  priority text not null default 'Medium',
   decision_makers text,
   other_names text,
   lunch_scheduled boolean not null default false,
@@ -65,7 +64,6 @@ create table if not exists doctors (
 );
 
 create index doctors_facility_idx on doctors(facility_id);
-create index doctors_priority_idx on doctors(priority);
 create index doctors_lunch_date_idx on doctors(lunch_date);
 
 create table if not exists visits (
@@ -124,6 +122,7 @@ create table if not exists lunches (
   cost_per_head numeric(10, 2),
   interaction_notes text,
   status text not null default 'scheduled',
+  is_date_tbd boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -134,9 +133,18 @@ create table if not exists daily_plan_anchors (
   plan_date date not null,
   doctor_id uuid references doctors(id) on delete cascade,
   facility_id uuid references facilities(id) on delete set null,
+  order_id uuid references orders(id) on delete set null,
   anchor_time time,
   anchor_type text not null default 'lunch',
   label text,
+  patient_name text,
+  manual_address text,
+  restaurant text,
+  food_notes text,
+  interaction_notes text,
+  headcount int,
+  total_cost numeric(10, 2),
+  cost_per_head numeric(10, 2),
   sort_order int not null default 0,
   created_at timestamptz not null default now()
 );
@@ -180,6 +188,8 @@ create table if not exists orders (
   facility_id uuid references facilities(id) on delete set null,
   visit_id uuid references visits(id) on delete set null,
   ordered_at timestamptz not null default now(),
+  insurance_reviewed_at timestamptz,
+  fitting_address text,
   product text,
   status text not null default 'pending',
   notes text,

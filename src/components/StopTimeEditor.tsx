@@ -74,7 +74,7 @@ export function StopTimeEditor({
   const hasSavedTime = Boolean(stop.suggestedStartTime);
 
   return (
-    <div className={`${compact ? "mt-2" : "mt-2"} rounded-lg bg-slate-50 dark:bg-slate-800 p-2`}>
+    <div className={`${compact ? "mt-2" : "mt-2"} rounded-lg bg-violet-50/70 dark:bg-slate-800 p-2`}>
       <div className="flex flex-wrap items-center gap-2">
         <input
           type="time"
@@ -84,7 +84,7 @@ export function StopTimeEditor({
           className="rounded border px-2 py-1 text-sm"
           aria-label="Start time"
         />
-        <span className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">to</span>
+        <span className="text-xs text-violet-600 dark:text-slate-400">to</span>
         <input
           type="time"
           value={end}

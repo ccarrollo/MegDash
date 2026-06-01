@@ -29,6 +29,7 @@ export function formatTimeRange(start: string, end: string): string {
 function defaultDuration(kind: PlannedStop["kind"]): number {
   if (kind === "lunch") return 60;
   if (kind === "coffee") return 30;
+  if (kind === "fitting") return 60;
   if (kind === "office") return 45;
   return DEFAULT_VISIT_MINUTES;
 }
@@ -37,7 +38,6 @@ function overrideKey(s: PlannedStop) {
   return `${s.doctorId}:${s.kind}`;
 }
 
-/** Lunches always 12:00; other stops only get times when saved via "Add specific time". */
 export function assignStopTimes(
   stops: PlannedStop[],
   overrides: StopTimeOverride[] = [],
@@ -48,11 +48,13 @@ export function assignStopTimes(
 
   return stops.map((stop) => {
     if (stop.kind === "lunch") {
+      const lunchStart = stop.scheduledTime ?? LUNCH_START;
+      const lunchEnd = fromMinutes(toMinutes(lunchStart) + defaultDuration("lunch"));
       return {
         ...stop,
-        scheduledTime: LUNCH_START,
-        suggestedStartTime: LUNCH_START,
-        suggestedEndTime: LUNCH_END,
+        scheduledTime: lunchStart,
+        suggestedStartTime: lunchStart,
+        suggestedEndTime: lunchEnd,
         timeOverrideId: undefined,
       };
     }

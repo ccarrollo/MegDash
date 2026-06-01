@@ -4,21 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/", label: "Today" },
+  { href: "/", label: "Plan" },
   { href: "/doctors", label: "Doctors" },
-  { href: "/lunches", label: "Lunches" },
+  { href: "/anchors", label: "Anchors" },
   { href: "/inventory", label: "Inventory" },
   { href: "/sales", label: "Sales" },
-  { href: "/search", label: "Search" },
-  { href: "/add", label: "Add" },
 ];
 
 export function Nav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 safe-bottom dark:border-slate-700 dark:bg-slate-900">
-      <div className="mx-auto flex max-w-lg">
+    <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-violet-200 bg-fuchsia-50/95 safe-bottom dark:border-slate-700 dark:bg-slate-900">
+      <div className="mx-auto grid max-w-lg grid-cols-5 gap-x-1 px-3 py-1">
         {links.map(({ href, label }) => {
           const active =
             pathname === href ||
@@ -27,10 +25,10 @@ export function Nav() {
             <Link
               key={href}
               href={href}
-              className={`flex-1 py-3 text-center text-sm font-medium ${
+              className={`py-3 text-center text-[11px] font-medium leading-tight tracking-tight sm:text-sm sm:tracking-normal ${
                 active
                   ? "text-brand-600 dark:text-brand-400"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  : "text-violet-700 hover:text-violet-950 dark:text-slate-400 dark:hover:text-slate-200"
               }`}
             >
               {label}

@@ -1,12 +1,18 @@
 import { PlanDateNav } from "@/components/PlanDateNav";
 import { PlanDayClient } from "@/components/PlanDayClient";
+import { MonthAnchorCalendar } from "@/components/MonthAnchorCalendar";
 import { SetupBanner } from "@/components/SetupBanner";
 import {
   formatPlanDateLong,
   isTodayPlanDate,
   parsePlanDate,
 } from "@/lib/dateUtils";
-import { getPlanForDate, getSetupStatus } from "@/lib/data";
+import {
+  fetchFacilities,
+  fetchMonthAnchorSummary,
+  getPlanForDate,
+  getSetupStatus,
+} from "@/lib/data";
 
 type Props = {
   searchParams: Promise<{ date?: string }>;
@@ -18,6 +24,10 @@ export default async function TodayPage({ searchParams }: Props) {
   const planDate = parsePlanDate(dateParam);
   const { stops, doctors, anchors, prospectCount, autoSuggestions } =
     await getPlanForDate(planDate);
+  const facilities = setup.supabase ? await fetchFacilities() : [];
+  const monthSummary = setup.supabase
+    ? await fetchMonthAnchorSummary(planDate)
+    : {};
   const viewingToday = isTodayPlanDate(planDate);
 
   return (
@@ -26,10 +36,10 @@ export default async function TodayPage({ searchParams }: Props) {
 
       <section className="rounded-xl bg-brand-600 p-4 text-white">
         <p className="text-sm opacity-90">
-          {viewingToday ? "Today" : "Planning"} · {formatPlanDateLong(planDate)}
+          {viewingToday ? "Plan" : "Planning"} · {formatPlanDateLong(planDate)}
         </p>
         <h1 className="text-2xl font-bold">
-          {viewingToday ? "Today's plan" : "Day plan"}
+          {viewingToday ? "Plan" : "Day plan"}
         </h1>
         <div className="mt-3">
           <PlanDateNav planDate={planDate} />
@@ -41,6 +51,7 @@ export default async function TodayPage({ searchParams }: Props) {
           planDate={planDate}
           stops={stops}
           doctors={doctors}
+          facilities={facilities}
           anchors={anchors}
           prospectCount={prospectCount}
           autoSuggestions={autoSuggestions}
@@ -48,7 +59,11 @@ export default async function TodayPage({ searchParams }: Props) {
       )}
 
       {setup.supabase && (
-        <p className="text-center text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
+        <MonthAnchorCalendar planDate={planDate} summary={monthSummary} />
+      )}
+
+      {setup.supabase && (
+        <p className="text-center text-xs text-violet-600 dark:text-slate-400">
           {doctors.length} doctors · Central (Austin)
         </p>
       )}

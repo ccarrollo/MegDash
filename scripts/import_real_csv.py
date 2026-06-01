@@ -154,7 +154,6 @@ def main():
             "name": row["Doctor Name"].strip(),
             "primary_focus": (row.get("Primary Focus") or "").strip() or None,
             "status": (row.get("Status") or "").strip() or "2. Introduced",
-            "priority": (row.get("Priority") or "").strip() or "Medium",
             "decision_makers": (row.get("Decision Makers") or "").strip() or None,
             "other_names": (row.get("Other Names To Know") or "").strip() or None,
             "lunch_scheduled": bool_or_none(row.get("Lunch?") or "") or False,

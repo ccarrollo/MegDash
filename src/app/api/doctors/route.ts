@@ -15,7 +15,6 @@ export async function POST(request: Request) {
     name?: string;
     primaryFocus?: string;
     status?: string;
-    priority?: string;
     followUpDate?: string | null;
   };
 
@@ -35,7 +34,6 @@ export async function POST(request: Request) {
       name,
       primary_focus: body.primaryFocus?.trim() || null,
       status: body.status?.trim() || "2. Introduced",
-      priority: body.priority?.trim() || "Medium",
       follow_up_date: body.followUpDate || null,
     })
     .select("id,name")

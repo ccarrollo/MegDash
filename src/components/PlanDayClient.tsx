@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { DayAnchorRow, DoctorRow, PlannedStop } from "@/lib/types";
+import type { DayAnchorRow, DoctorRow, FacilityRow, PlannedStop } from "@/lib/types";
 import { DayAnchorsPanel } from "./DayAnchorsPanel";
 import { PlanControls } from "./PlanControls";
 import { StopCard } from "./StopCard";
@@ -11,6 +11,7 @@ export function PlanDayClient({
   planDate,
   stops,
   doctors,
+  facilities,
   anchors,
   prospectCount: initialCount,
   autoSuggestions,
@@ -18,6 +19,7 @@ export function PlanDayClient({
   planDate: string;
   stops: PlannedStop[];
   doctors: DoctorRow[];
+  facilities: FacilityRow[];
   anchors: DayAnchorRow[];
   prospectCount: number;
   autoSuggestions: boolean;
@@ -46,9 +48,9 @@ export function PlanDayClient({
 
   return (
     <>
-      <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
+      <section className="rounded-xl border border-violet-200 dark:border-slate-700 bg-fuchsia-50 dark:bg-slate-900 p-4 space-y-3">
         <PlanControls planDate={planDate} autoSuggestions={autoSuggestions} />
-        <label className="block text-sm text-slate-600 dark:text-slate-400 dark:text-slate-400">
+        <label className="block text-sm text-violet-800 dark:text-slate-400">
           Prospect visits this day
           <select
             value={count}
@@ -63,18 +65,23 @@ export function PlanDayClient({
             ))}
           </select>
         </label>
-        <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
+        <p className="text-xs text-violet-700 dark:text-slate-400">
           {autoSuggestions
-            ? "Suggested visits use priority and zone scoring. Clear the plan to build manually from Doctors."
+            ? "Suggested visits use zone and contact scoring. Clear the plan to build manually from Doctors."
             : "Lunches stay on the plan. Add visits from Doctors → Add to today's plan."}{" "}
-          Lunches are at 12:00 PM; other stops can use Add specific time.
+          Lunches use their saved lunch time; other stops can use Add specific time.
         </p>
       </section>
 
-      <DayAnchorsPanel anchors={anchors} doctors={doctors} planDate={planDate} />
+      <DayAnchorsPanel
+        anchors={anchors}
+        doctors={doctors}
+        facilities={facilities}
+        planDate={planDate}
+      />
 
       {stops.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 dark:border-slate-600 p-6 text-center text-slate-500 dark:text-slate-400 dark:text-slate-400">
+        <p className="rounded-xl border border-dashed border-violet-300 dark:border-slate-600 p-6 text-center text-violet-700 dark:text-slate-400">
           No stops for {planDate}. Schedule a lunch on a doctor profile.
         </p>
       ) : (

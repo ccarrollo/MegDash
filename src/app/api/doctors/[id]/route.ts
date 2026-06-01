@@ -17,7 +17,6 @@ export async function PATCH(request: Request, ctx: Params) {
   const { id } = await ctx.params;
   const body = (await request.json()) as {
     status?: string;
-    priority?: string;
     followUpDate?: string | null;
     follow_up_lunch?: string | null;
     front_desk_notes?: string | null;
@@ -35,7 +34,6 @@ export async function PATCH(request: Request, ctx: Params) {
 
   const payload: Record<string, string | boolean | null> = {};
   if (typeof body.status === "string") payload.status = body.status.trim();
-  if (typeof body.priority === "string") payload.priority = body.priority.trim();
   if ("followUpDate" in body) payload.follow_up_date = body.followUpDate || null;
   if ("follow_up_lunch" in body) payload.follow_up_lunch = body.follow_up_lunch ?? null;
   if ("followUpLunch" in body) payload.follow_up_lunch = body.followUpLunch ?? null;

@@ -87,7 +87,7 @@ export function DoctorPhoto({
           <button
             type="button"
             onClick={() => setLightbox(true)}
-            className={`${dim.box} overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-800`}
+            className={`${dim.box} overflow-hidden rounded-xl border border-violet-200 bg-violet-100 dark:border-slate-600 dark:bg-slate-800`}
             aria-label={`Open photo of ${doctorName}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -102,7 +102,7 @@ export function DoctorPhoto({
             type="button"
             disabled={!allowUpload || uploading}
             onClick={() => inputRef.current?.click()}
-            className={`${dim.box} flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-500`}
+            className={`${dim.box} flex flex-col items-center justify-center rounded-xl border border-dashed border-violet-300 bg-violet-50/70 text-violet-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400`}
             aria-label={`Add photo for ${doctorName}`}
           >
             <span className={dim.icon}>📷</span>
@@ -169,7 +169,7 @@ export function DoctorPhoto({
             <button
               type="button"
               onClick={() => setLightbox(false)}
-              className="rounded-lg bg-white/10 px-3 py-1.5 text-sm"
+              className="rounded-lg bg-violet-50/10 px-3 py-1.5 text-sm"
             >
               Close
             </button>
@@ -188,7 +188,7 @@ export function DoctorPhoto({
                 type="button"
                 disabled={uploading}
                 onClick={() => inputRef.current?.click()}
-                className="rounded-lg bg-white/15 px-4 py-2 text-sm text-white"
+                className="rounded-lg bg-violet-50/15 px-4 py-2 text-sm text-white"
               >
                 Replace photo
               </button>

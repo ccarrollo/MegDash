@@ -66,26 +66,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const shouldCreateOrder = outcomesToInsert.includes("order_obtained");
   const primaryVisitId = visits?.[0]?.id;
-
-  if (shouldCreateOrder) {
-    const { data: doctor } = await supabase
-      .from("doctors")
-      .select("facility_id")
-      .eq("id", doctorId)
-      .single();
-
-    await supabase.from("orders").insert({
-      doctor_id: doctorId,
-      facility_id: doctor?.facility_id ?? null,
-      visit_id: primaryVisitId ?? null,
-      status: "pending",
-      pipeline_stage: "order_received",
-      source: "visit_log",
-      notes: note?.trim() || "Logged from field visit",
-    });
-  }
 
   return NextResponse.json({
     ok: true,
@@ -94,6 +75,5 @@ export async function POST(request: Request) {
     updatesLastContact: outcomesToInsert.some((value) =>
       outcomeUpdatesLastContact(value),
     ),
-    createdOrder: shouldCreateOrder,
   });
 }

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const PRODUCTS = ["AccelStim", "PhysioStim", "Other"];
+const PRODUCTS = ["AccelStim", "PhysioStim"] as const;
 
 export function AddPaidSaleForm({
   year,
@@ -20,6 +20,7 @@ export function AddPaidSaleForm({
   const [doctorId, setDoctorId] = useState("");
   const [patientLabel, setPatientLabel] = useState("");
   const [mySalesAmount, setMySalesAmount] = useState("");
+  const [actualCost, setActualCost] = useState("");
   const [product, setProduct] = useState("AccelStim");
   const [paymentYear, setPaymentYear] = useState(String(year));
   const [paymentMonth, setPaymentMonth] = useState(String(month));
@@ -50,7 +51,11 @@ export function AddPaidSaleForm({
           paymentYear: py,
           paymentMonth: pm,
           mySalesAmount: amt,
-          product: product === "Other" ? null : product,
+          actualCost:
+            actualCost.trim() === ""
+              ? null
+              : parseFloat(actualCost),
+          product,
           notes: notes || null,
         }),
       });
@@ -61,6 +66,7 @@ export function AddPaidSaleForm({
       setOpen(false);
       setPatientLabel("");
       setMySalesAmount("");
+      setActualCost("");
       setNotes("");
       router.refresh();
     } catch (err) {
@@ -77,7 +83,7 @@ export function AddPaidSaleForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-lg border border-dashed border-brand-400 dark:border-brand-600 bg-white dark:bg-slate-900 py-2 text-sm font-medium text-brand-700"
+        className="w-full rounded-lg border border-dashed border-brand-400 dark:border-brand-600 bg-fuchsia-50 dark:bg-slate-900 py-2 text-sm font-medium text-brand-700"
       >
         + Add paid sale
       </button>
@@ -87,15 +93,16 @@ export function AddPaidSaleForm({
   return (
     <form
       onSubmit={submit}
-      className="rounded-lg border border-brand-200 dark:border-brand-800 bg-white dark:bg-slate-900 p-3 space-y-3"
+      className="rounded-lg border border-brand-200 dark:border-brand-800 bg-fuchsia-50 dark:bg-slate-900 p-3 space-y-3"
     >
       <p className="text-sm font-medium">Add paid sale (3PP)</p>
-      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
-        My Sales $ is per order — use 0 for comp or giveaway units.
+      <p className="text-xs text-violet-700 dark:text-slate-400">
+        My Sales $ is per order — use 0 for comp or giveaway. Device cost is
+        optional (what the device cost the practice).
       </p>
 
       <label className="block text-xs">
-        <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Doctor</span>
+        <span className="text-violet-700 dark:text-slate-400">Doctor</span>
         <select
           value={doctorId}
           onChange={(e) => setDoctorId(e.target.value)}
@@ -112,7 +119,7 @@ export function AddPaidSaleForm({
       </label>
 
       <label className="block text-xs">
-        <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Patient name</span>
+        <span className="text-violet-700 dark:text-slate-400">Patient name</span>
         <input
           value={patientLabel}
           onChange={(e) => setPatientLabel(e.target.value)}
@@ -122,7 +129,7 @@ export function AddPaidSaleForm({
 
       <div className="grid grid-cols-2 gap-2">
         <label className="block text-xs">
-          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">My Sales $ *</span>
+          <span className="text-violet-700 dark:text-slate-400">My Sales $ *</span>
           <input
             type="number"
             min={0}
@@ -135,24 +142,37 @@ export function AddPaidSaleForm({
           />
         </label>
         <label className="block text-xs">
-          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Product</span>
-          <select
-            value={product}
-            onChange={(e) => setProduct(e.target.value)}
+          <span className="text-violet-700 dark:text-slate-400">Device cost $</span>
+          <input
+            type="number"
+            min={0}
+            step={0.01}
+            value={actualCost}
+            onChange={(e) => setActualCost(e.target.value)}
+            placeholder="Optional"
             className="mt-1 w-full rounded border px-2 py-1 text-sm"
-          >
-            {PRODUCTS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
+          />
         </label>
       </div>
 
+      <label className="block text-xs">
+        <span className="text-violet-700 dark:text-slate-400">Product</span>
+        <select
+          value={product}
+          onChange={(e) => setProduct(e.target.value)}
+          className="mt-1 w-full rounded border px-2 py-1 text-sm"
+        >
+          {PRODUCTS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+      </label>
+
       <div className="grid grid-cols-2 gap-2">
         <label className="block text-xs">
-          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Payment year</span>
+          <span className="text-violet-700 dark:text-slate-400">Payment year</span>
           <input
             type="number"
             value={paymentYear}
@@ -161,7 +181,7 @@ export function AddPaidSaleForm({
           />
         </label>
         <label className="block text-xs">
-          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Payment month (1–12)</span>
+          <span className="text-violet-700 dark:text-slate-400">Payment month (1–12)</span>
           <input
             type="number"
             min={1}
@@ -174,7 +194,7 @@ export function AddPaidSaleForm({
       </div>
 
       <label className="block text-xs">
-        <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Notes</span>
+        <span className="text-violet-700 dark:text-slate-400">Notes</span>
         <input
           value={notes}
           onChange={(e) => setNotes(e.target.value)}

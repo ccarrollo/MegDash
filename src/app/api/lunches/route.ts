@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     foodNotes?: string | null;
     interactionNotes?: string | null;
     status?: string | null;
+    dateTbd?: boolean;
   };
 
   if (!body.lunchDate || (!body.doctorId && !body.facilityId)) {
@@ -35,12 +36,13 @@ export async function POST(request: Request) {
       doctor_id: body.doctorId ?? null,
       facility_id: body.facilityId ?? null,
       lunch_date: body.lunchDate,
-      start_time: "12:00:00",
+      start_time: body.startTime ? `${body.startTime}:00` : "12:00:00",
       lunch_order: body.lunchOrder ?? body.restaurant ?? null,
       restaurant: body.restaurant ?? body.lunchOrder ?? null,
       food_notes: body.foodNotes ?? null,
       interaction_notes: body.interactionNotes ?? null,
       status: body.status ?? "scheduled",
+      is_date_tbd: Boolean(body.dateTbd),
     })
     .select("id")
     .single();

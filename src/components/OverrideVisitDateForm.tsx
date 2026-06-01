@@ -67,7 +67,7 @@ export function OverrideVisitDateForm({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400 underline-offset-2 hover:text-brand-600 hover:underline"
+          className="text-xs text-violet-700 dark:text-slate-400 underline-offset-2 hover:text-brand-600 hover:underline"
         >
           Change last visit date
           {isOverridden && (
@@ -88,7 +88,7 @@ export function OverrideVisitDateForm({
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="rounded border border-amber-300 bg-white dark:bg-slate-900 px-2 py-1 text-sm"
+          className="rounded border border-amber-300 bg-fuchsia-50 dark:bg-slate-900 px-2 py-1 text-sm"
         />
         <button
           type="button"
@@ -112,7 +112,7 @@ export function OverrideVisitDateForm({
           type="button"
           disabled={loading}
           onClick={() => setOpen(false)}
-          className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300"
+          className="text-xs text-violet-700 dark:text-slate-400 hover:text-violet-900 dark:text-slate-300"
         >
           Cancel
         </button>

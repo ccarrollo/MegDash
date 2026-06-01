@@ -3,29 +3,50 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f8fafc;
-  --card: #ffffff;
-  --text: #0f172a;
-  --muted: #64748b;
-  --accent: #2563eb;
+  color-scheme: light;
+  --bg: #ede9fe;
+  --bg-accent: #fae8ff;
+  --card: #faf5ff;
+  --card-elevated: #f5f3ff;
+  --text: #3b0764;
+  --muted: #6b21a8;
+  --accent: #9333ea;
+  --border: #c4b5fd;
+  --input-bg: #ffffff;
 }
 
 .dark {
   color-scheme: dark;
   --bg: #020617;
+  --bg-accent: #020617;
   --card: #0f172a;
+  --card-elevated: #1e293b;
   --text: #f1f5f9;
   --muted: #94a3b8;
-  --accent: #3b82f6;
+  --accent: #c084fc;
+  --border: #334155;
+  --input-bg: #1e293b;
 }
 
 body {
   color: var(--text);
-  background: var(--bg);
+  background: linear-gradient(
+    165deg,
+    var(--bg) 0%,
+    var(--bg-accent) 45%,
+    var(--bg) 100%
+  );
+  background-attachment: fixed;
   -webkit-tap-highlight-color: transparent;
 }
 
 @layer base {
+  html:not(.dark) input:not([type="checkbox"]):not([type="radio"]),
+  html:not(.dark) select,
+  html:not(.dark) textarea {
+    @apply border-violet-300 bg-violet-50 text-violet-950 placeholder:text-violet-500;
+  }
+
   .dark input:not([type="checkbox"]):not([type="radio"]),
   .dark select,
   .dark textarea {
@@ -34,7 +55,7 @@ body {
 
   .dark input::placeholder,
   .dark textarea::placeholder {
-    @apply text-slate-500;
+    @apply text-violet-700;
   }
 }
 

@@ -5,6 +5,7 @@ import { SalesOrdersClient } from "@/components/SalesOrdersClient";
 import {
   fetchDoctors,
   fetchMonthlyGoal,
+  fetchPaymentsForOrders,
   fetchRecentOrders,
   fetchSalesForMonth,
   getMonthlyPerformance,
@@ -34,9 +35,12 @@ export default async function SalesPage({
     getMonthlyPerformance(safeYear, safeMonth),
     fetchMonthlyGoal(safeYear, safeMonth),
     fetchSalesForMonth(safeYear, safeMonth),
-    fetchRecentOrders(50),
+    fetchRecentOrders(100),
     fetchDoctors(),
   ]);
+
+  const paymentsMap = await fetchPaymentsForOrders(orders.map((o) => o.id));
+  const paymentsByOrderId = Object.fromEntries(paymentsMap.entries());
 
   const doctorMap = new Map(doctors.map((d) => [d.id, d]));
   const salesEnriched = sales.map((s) => {
@@ -51,7 +55,7 @@ export default async function SalesPage({
     const d = o.doctor_id ? doctorMap.get(o.doctor_id) : null;
     return {
       ...o,
-      pipeline_stage: o.pipeline_stage ?? "order_received",
+      pipeline_stage: o.pipeline_stage ?? "open",
       counts_as_sale: o.counts_as_sale ?? false,
       doctor_name: d?.name ?? null,
       facility_name: d?.facility_name ?? null,
@@ -62,8 +66,8 @@ export default async function SalesPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold">Sales & Orders</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-400">
-          3PP goals, My Sales $ per order, commission tiers, and order pipeline
+        <p className="mt-1 text-sm text-violet-700 dark:text-slate-400">
+          3PP goals, orders with payment lines, and commission tiers
         </p>
         <p className="mt-2 text-sm">
           <Link href="/import" className="text-brand-600 hover:underline">
@@ -82,6 +86,7 @@ export default async function SalesPage({
         goal={goal}
         sales={salesEnriched}
         orders={ordersEnriched}
+        paymentsByOrderId={paymentsByOrderId}
         doctors={doctors.map((d) => ({
           id: d.id,
           name: d.name,
@@ -91,7 +96,7 @@ export default async function SalesPage({
         month={safeMonth}
       />
 
-      <p className="text-center text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
+      <p className="text-center text-xs text-violet-600 dark:text-slate-400">
         <Link href="/" className="text-brand-600 hover:underline">
           ← Day plan
         </Link>

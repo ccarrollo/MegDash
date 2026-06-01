@@ -13,7 +13,6 @@ export type ProspectingImportRow = {
   status: string;
   lunchScheduled: boolean;
   lunchDate: string | null;
-  priority: string;
   frontDeskIn: boolean | null;
   marketingKit: boolean | null;
   followUpDate: string | null;
@@ -233,7 +232,6 @@ export function mapProspectingTargetTabRows(
       status: rowStatus,
       lunchScheduled: false,
       lunchDate: null,
-      priority: "Medium",
       frontDeskIn: null,
       marketingKit: null,
       followUpDate: null,
@@ -288,7 +286,6 @@ export function mapProspectingRows(csvRows: CsvRow[]): ProspectingImportRow[] {
         status: r["Status"]?.trim() || "2. Introduced",
         lunchScheduled: parseBool(r["Lunch?"] ?? "") ?? false,
         lunchDate: toIsoDate(r["Lunch Date"] ?? ""),
-        priority: r["Priority"]?.trim() || "Medium",
         frontDeskIn: parseBool(r["Front Desk In?"] ?? ""),
         marketingKit: parseBool(r["Office Marketing Kit?"] ?? ""),
         followUpDate: toIsoDate(r["Follow-up Date"] ?? ""),

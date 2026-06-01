@@ -1,5 +1,5 @@
 import { planDateIso } from "./dateUtils";
-import { PRIORITY_WEIGHT, STATUS_WEIGHT } from "./constants";
+import { STATUS_WEIGHT } from "./constants";
 import {
   isRoadTripZone,
   SAME_DAY_ZONES_FROM_AUSTIN,
@@ -24,7 +24,6 @@ function scoreDoctor(
 ): number {
   let score = 0;
 
-  score += PRIORITY_WEIGHT[d.priority] ?? 1;
   score += STATUS_WEIGHT[d.status] ?? 0;
 
   if (d.days_since_visit != null) {
@@ -59,12 +58,14 @@ const ANCHOR_KIND: Record<string, PlannedStop["kind"]> = {
   coffee: "coffee",
   lunch: "lunch",
   office: "office",
+  fitting: "fitting",
 };
 
 const ANCHOR_REASON: Record<string, string> = {
   coffee: "Morning coffee / drop-off anchor",
   lunch: "Lunch anchor",
   office: "Office visit anchor",
+  fitting: "Fitting anchor",
 };
 
 function resolveAnchorZone(
@@ -91,7 +92,9 @@ function resolveAnchorZone(
     if (doc) return doc.zone;
   }
 
-  const lunchesFromDoctor = doctors.filter((d) => d.lunch_date === planDate);
+  const lunchesFromDoctor = doctors.filter(
+    (d) => d.lunch_scheduled && d.lunch_date === planDate,
+  );
   if (lunchesFromDoctor.length > 0) return lunchesFromDoctor[0].zone;
 
   return fallback;
@@ -123,21 +126,26 @@ export function buildScheduledStops(
   const usedDoctorIds = new Set<string>();
 
   for (const anchor of sortedAnchors) {
-    if (!anchor.doctor_id) continue;
-    const d = doctors.find((doc) => doc.id === anchor.doctor_id);
-    if (!d) continue;
-    usedDoctorIds.add(d.id);
-
     const kind = ANCHOR_KIND[anchor.anchor_type] ?? "lunch";
+    const d = anchor.doctor_id
+      ? doctors.find((doc) => doc.id === anchor.doctor_id)
+      : null;
+    if (d) usedDoctorIds.add(d.id);
+    if (!d && kind !== "fitting") continue;
     stops.push({
-      doctorId: d.id,
-      doctorName: d.name,
-      facilityName: d.facility_name,
-      address: d.address,
-      zone: d.zone,
+      doctorId: d?.id ?? `fitting-${anchor.id}`,
+      doctorName: anchor.patient_name ?? d?.name ?? "Fitting patient",
+      facilityName:
+        d?.facility_name ??
+        (kind === "fitting" ? "Home fitting" : "Unknown facility"),
+      address:
+        anchor.manual_address ?? d?.address ?? "Address needed — update fitting",
+      zone: d?.zone ?? "unknown",
       kind,
       scheduledTime: anchor.anchor_time,
       anchorId: anchor.id,
+      orderId: anchor.order_id ?? undefined,
+      isNonDoctor: !d,
       reason: anchor.label?.trim() || ANCHOR_REASON[anchor.anchor_type] || "Scheduled anchor",
       score: 100,
     });
@@ -156,7 +164,7 @@ export function buildScheduledStops(
       address: d.address,
       zone: d.zone,
       kind: "lunch",
-      scheduledTime: "12:00",
+      scheduledTime: lunch.start_time ? lunch.start_time.slice(0, 5) : "12:00",
       lunchId: lunch.id,
       reason: `Lunch · ${planDate}`,
       score: 95,
@@ -165,7 +173,7 @@ export function buildScheduledStops(
 
   for (const d of doctors) {
     if (usedDoctorIds.has(d.id)) continue;
-    if (d.lunch_date !== planDate) continue;
+    if (!d.lunch_scheduled || d.lunch_date !== planDate) continue;
     const hasLunchRow = lunchesOnDate.some(
       (l) => l.doctor_id === d.id && l.status !== "cancelled",
     );
@@ -265,7 +273,6 @@ export function buildDailyPlan(
       reasons.push("Same office as morning anchor");
     }
     if (isFollowUp) reasons.push("Follow-up due");
-    if (d.priority === "High") reasons.push("High priority");
     if (d.days_since_visit != null) {
       reasons.push(`${d.days_since_visit} days since visit`);
     } else if (d.days_since_contact != null) {

@@ -12,6 +12,7 @@ import { getSupabase, isSupabaseConfigured } from "./supabase";
 import type {
   DayAnchorRow,
   DayPlanSettings,
+  DoctorDayNoteRow,
   DoctorRow,
   FacilityRow,
   LunchRow,
@@ -40,7 +41,14 @@ function logQueryError(label: string, error: unknown) {
 }
 
 const DEFAULT_PROSPECT_COUNT = 6;
-const DEFAULT_INVENTORY_IDS = ["5313", "5314", "5315", "5302", "5303"];
+const DEFAULT_INVENTORY_IDS = [
+  "AccelStim",
+  "5313",
+  "5314",
+  "5315",
+  "5302",
+  "5303",
+];
 
 /** View may omit photo_path until recreated; always read from doctors table. */
 async function mergeDoctorPhotoPaths(
@@ -77,7 +85,7 @@ export async function fetchDoctors(): Promise<DoctorRow[]> {
   const { data, error } = await supabase
     .from("doctors_with_last_visit")
     .select("*")
-    .order("priority", { ascending: true });
+    .order("name", { ascending: true });
 
   if (error) {
     logQueryError("fetchDoctors", error);
@@ -155,6 +163,23 @@ export async function fetchDoctorNotes(id: string): Promise<NoteRow[]> {
   return (data ?? []) as NoteRow[];
 }
 
+export async function fetchDoctorDayNotes(
+  doctorId: string,
+): Promise<DoctorDayNoteRow[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("doctor_day_notes")
+    .select("*")
+    .eq("doctor_id", doctorId)
+    .order("note_date", { ascending: false });
+  if (error) {
+    logQueryError("fetchDoctorDayNotes", error);
+    return [];
+  }
+  return (data ?? []) as DoctorDayNoteRow[];
+}
+
 export async function fetchDoctorLunches(id: string): Promise<LunchRow[]> {
   const supabase = getSupabase();
   if (!supabase) return [];
@@ -168,6 +193,21 @@ export async function fetchDoctorLunches(id: string): Promise<LunchRow[]> {
     return [];
   }
   return (data ?? []) as LunchRow[];
+}
+
+export async function fetchDoctorOrders(doctorId: string): Promise<OrderRow[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("doctor_id", doctorId)
+    .order("ordered_at", { ascending: false });
+  if (error) {
+    logQueryError("fetchDoctorOrders", error);
+    return [];
+  }
+  return (data ?? []) as OrderRow[];
 }
 
 export async function fetchDayAnchors(planDate?: string): Promise<DayAnchorRow[]> {
@@ -189,6 +229,21 @@ export async function fetchDayAnchors(planDate?: string): Promise<DayAnchorRow[]
   return (data ?? []) as DayAnchorRow[];
 }
 
+export async function fetchAllDayAnchors(): Promise<DayAnchorRow[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("daily_plan_anchors")
+    .select("*")
+    .order("plan_date", { ascending: false })
+    .order("sort_order", { ascending: true });
+  if (error) {
+    logQueryError("fetchAllDayAnchors", error);
+    return [];
+  }
+  return (data ?? []) as DayAnchorRow[];
+}
+
 export function enrichAnchors(
   anchors: DayAnchorRow[],
   doctors: DoctorRow[],
@@ -197,9 +252,11 @@ export function enrichAnchors(
     const d = a.doctor_id ? doctors.find((doc) => doc.id === a.doctor_id) : null;
     return {
       ...a,
-      doctor_name: d?.name ?? null,
-      facility_name: d?.facility_name ?? null,
-      address: d?.address ?? null,
+      doctor_name: a.patient_name ?? d?.name ?? null,
+      facility_name:
+        d?.facility_name ??
+        (a.anchor_type === "fitting" ? "Home fitting" : null),
+      address: a.manual_address ?? d?.address ?? null,
       zone: d?.zone ?? null,
     };
   });
@@ -212,6 +269,7 @@ export async function fetchLunchesOnDate(planDate: string): Promise<LunchRow[]> 
     .from("lunches")
     .select("*")
     .eq("lunch_date", planDate)
+    .neq("is_date_tbd", true)
     .neq("status", "cancelled")
     .order("start_time", { ascending: true });
   if (error) {
@@ -219,6 +277,112 @@ export async function fetchLunchesOnDate(planDate: string): Promise<LunchRow[]> 
     return [];
   }
   return (data ?? []) as LunchRow[];
+}
+
+export async function fetchFittingExclusions(planDate: string): Promise<Set<string>> {
+  const supabase = getSupabase();
+  if (!supabase) return new Set();
+  const { data, error } = await supabase
+    .from("plan_fitting_exclusions")
+    .select("order_id")
+    .eq("plan_date", planDate);
+  if (error) {
+    logQueryError("fetchFittingExclusions", error);
+    return new Set();
+  }
+  return new Set((data ?? []).map((row) => row.order_id as string));
+}
+
+export async function fetchFittingsOnDate(
+  planDate: string,
+  excludedOrderIds?: Set<string>,
+) {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const fromIso = `${planDate}T00:00:00`;
+  const toIso = `${planDate}T23:59:59`;
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id,doctor_id,facility_id,patient_label,fitting_address,fitted_at,pipeline_stage")
+    .gte("fitted_at", fromIso)
+    .lte("fitted_at", toIso)
+    .not("fitted_at", "is", null)
+    .neq("pipeline_stage", "lost")
+    .order("fitted_at", { ascending: true });
+  if (error) {
+    logQueryError("fetchFittingsOnDate", error);
+    return [];
+  }
+  const excluded = excludedOrderIds ?? new Set<string>();
+  return (data ?? []).filter((row) => row.fitted_at && !excluded.has(row.id)) as {
+    id: string;
+    doctor_id: string | null;
+    facility_id: string | null;
+    patient_label: string | null;
+    fitting_address: string | null;
+    fitted_at: string;
+  }[];
+}
+
+export async function fetchMonthAnchorSummary(planDate: string): Promise<
+  Record<string, Array<"lunch" | "coffee" | "fitting">>
+> {
+  const supabase = getSupabase();
+  if (!supabase) return {};
+  const [y, m] = planDate.split("-").map(Number);
+  const start = `${y}-${String(m).padStart(2, "0")}-01`;
+  const endDate = new Date(Date.UTC(y, m, 0));
+  const end = `${y}-${String(m).padStart(2, "0")}-${String(
+    endDate.getUTCDate(),
+  ).padStart(2, "0")}`;
+
+  const out = new Map<string, Set<"lunch" | "coffee" | "fitting">>();
+  const add = (date: string, kind: "lunch" | "coffee" | "fitting") => {
+    if (!out.has(date)) out.set(date, new Set());
+    out.get(date)!.add(kind);
+  };
+
+  const { data: anchors } = await supabase
+    .from("daily_plan_anchors")
+    .select("plan_date,anchor_type")
+    .gte("plan_date", start)
+    .lte("plan_date", end);
+  for (const a of anchors ?? []) {
+    const kind =
+      a.anchor_type === "coffee"
+        ? "coffee"
+        : a.anchor_type === "fitting"
+          ? "fitting"
+          : a.anchor_type === "lunch"
+            ? "lunch"
+            : null;
+    if (kind) add(String(a.plan_date).slice(0, 10), kind);
+  }
+
+  const { data: lunches } = await supabase
+    .from("lunches")
+    .select("lunch_date,status,is_date_tbd")
+    .gte("lunch_date", start)
+    .lte("lunch_date", end)
+    .neq("status", "cancelled")
+    .neq("is_date_tbd", true);
+  for (const l of lunches ?? []) add(String(l.lunch_date).slice(0, 10), "lunch");
+
+  const { data: fittings } = await supabase
+    .from("orders")
+    .select("fitted_at,pipeline_stage")
+    .gte("fitted_at", `${start}T00:00:00`)
+    .lte("fitted_at", `${end}T23:59:59`)
+    .not("fitted_at", "is", null)
+    .neq("pipeline_stage", "lost");
+  for (const f of fittings ?? []) {
+    if (!f.fitted_at) continue;
+    add(String(f.fitted_at).slice(0, 10), "fitting");
+  }
+
+  return Object.fromEntries(
+    Array.from(out.entries()).map(([date, kinds]) => [date, Array.from(kinds)]),
+  ) as Record<string, Array<"lunch" | "coffee" | "fitting">>;
 }
 
 export async function fetchStopTimeOverrides(
@@ -322,20 +486,24 @@ export async function getPlanForDate(
   prospectCount?: number,
 ) {
   const date = planDate ?? planDateIso();
-  const [doctors, rawAnchors, lunchesOnDate, overrides, settings] =
+  const [doctors, rawAnchors, lunchesOnDate, fittingExclusions, overrides, settings] =
     await Promise.all([
       fetchDoctors(),
       fetchDayAnchors(date),
       fetchLunchesOnDate(date),
+      fetchFittingExclusions(date),
       fetchStopTimeOverrides(date),
       fetchPlanSettings(date),
     ]);
+  const fittingsOnDate = await fetchFittingsOnDate(date, fittingExclusions);
 
   const mergedAnchors = mergeLunchAnchors(
     rawAnchors,
     lunchesOnDate,
+    fittingsOnDate,
     doctors,
     date,
+    fittingExclusions,
   );
   const anchors = enrichAnchors(mergedAnchors, doctors);
   const count = prospectCount ?? settings.prospect_count ?? DEFAULT_PROSPECT_COUNT;
@@ -587,6 +755,34 @@ export async function getMonthlyPerformance(
     revenueActual: sales3pp > 0 ? sales3pp : null,
     pctToGoal: bd.pctOfGoal,
   };
+}
+
+export async function fetchPaymentsForOrders(
+  orderIds: string[],
+): Promise<Map<string, SaleRecordRow[]>> {
+  const map = new Map<string, SaleRecordRow[]>();
+  const supabase = getSupabase();
+  if (!supabase || orderIds.length === 0) return map;
+
+  const { data, error } = await supabase
+    .from("sales_records")
+    .select("*")
+    .in("order_id", orderIds)
+    .order("payment_year", { ascending: true })
+    .order("payment_month", { ascending: true });
+
+  if (error) {
+    logQueryError("fetchPaymentsForOrders", error);
+    return map;
+  }
+
+  for (const row of (data ?? []) as SaleRecordRow[]) {
+    if (!row.order_id) continue;
+    const list = map.get(row.order_id) ?? [];
+    list.push(row);
+    map.set(row.order_id, list);
+  }
+  return map;
 }
 
 export async function fetchRecentOrders(limit = 30): Promise<OrderRow[]> {

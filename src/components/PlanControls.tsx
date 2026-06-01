@@ -69,7 +69,7 @@ export function PlanControls({
         type="button"
         disabled={loading != null}
         onClick={() => void clearPlan()}
-        className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 disabled:opacity-50"
+        className="rounded-lg border border-violet-300 dark:border-slate-600 bg-fuchsia-50 dark:bg-slate-900 px-3 py-1.5 text-sm text-violet-900 dark:text-slate-300 disabled:opacity-50"
       >
         {loading === "clear" ? "Clearing…" : "Clear plan"}
       </button>

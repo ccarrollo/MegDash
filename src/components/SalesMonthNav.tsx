@@ -34,7 +34,7 @@ export function SalesMonthNav({
       : { year, month: month + 1 };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-violet-200 dark:border-slate-700 bg-fuchsia-50 dark:bg-slate-900 px-3 py-2">
       <Link
         href={`/sales?year=${prev.year}&month=${prev.month}`}
         className="text-sm text-brand-600 hover:underline"

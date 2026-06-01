@@ -8,6 +8,10 @@ export function LunchEditor({ lunch }: { lunch: LunchRow }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [lunchDate, setLunchDate] = useState(lunch.lunch_date);
+  const [startTime, setStartTime] = useState(
+    lunch.start_time ? lunch.start_time.slice(0, 5) : "12:00",
+  );
+  const [dateTbd, setDateTbd] = useState(Boolean(lunch.is_date_tbd));
   const [status, setStatus] = useState(lunch.status);
   const [restaurant, setRestaurant] = useState(lunch.restaurant ?? lunch.lunch_order ?? "");
   const [headcount, setHeadcount] = useState(
@@ -21,6 +25,8 @@ export function LunchEditor({ lunch }: { lunch: LunchRow }) {
 
   useEffect(() => {
     setLunchDate(lunch.lunch_date);
+    setStartTime(lunch.start_time ? lunch.start_time.slice(0, 5) : "12:00");
+    setDateTbd(Boolean(lunch.is_date_tbd));
     setStatus(lunch.status);
     setRestaurant(lunch.restaurant ?? lunch.lunch_order ?? "");
     setHeadcount(lunch.headcount != null ? String(lunch.headcount) : "");
@@ -39,7 +45,7 @@ export function LunchEditor({ lunch }: { lunch: LunchRow }) {
         : null;
 
   async function save() {
-    if (!lunchDate) {
+    if (!dateTbd && !lunchDate) {
       alert("Lunch date is required.");
       return;
     }
@@ -50,7 +56,8 @@ export function LunchEditor({ lunch }: { lunch: LunchRow }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lunchDate,
-          startTime: "12:00",
+          startTime: dateTbd ? null : startTime || "12:00",
+          dateTbd,
           status,
           restaurant: restaurant.trim() || null,
           lunchOrder: restaurant.trim() || null,
@@ -73,22 +80,38 @@ export function LunchEditor({ lunch }: { lunch: LunchRow }) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+    <div className="rounded-lg border border-violet-200 dark:border-slate-700 p-3">
       <div className="grid gap-2 sm:grid-cols-2">
-        <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
+        <label className="text-xs text-violet-700 dark:text-slate-400">
           Date
           <input
             type="date"
             value={lunchDate}
+            disabled={dateTbd}
             onChange={(e) => setLunchDate(e.target.value)}
             className="mt-1 block w-full rounded border px-2 py-1.5 text-sm"
           />
         </label>
-        <div className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
-          <span className="block">Time</span>
-          <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">12:00 PM</p>
-        </div>
-        <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400 sm:col-span-2">
+        <label className="text-xs text-violet-700 dark:text-slate-400">
+          Time
+          <input
+            type="time"
+            value={startTime}
+            disabled={dateTbd}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="mt-1 block w-full rounded border px-2 py-1.5 text-sm"
+          />
+        </label>
+        <label className="text-xs text-violet-700 dark:text-slate-400 sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={dateTbd}
+            onChange={(e) => setDateTbd(e.target.checked)}
+            className="mr-2"
+          />
+          Date TBD (rescheduled, not yet set)
+        </label>
+        <label className="text-xs text-violet-700 dark:text-slate-400 sm:col-span-2">
           Status
           <select
             value={status}
@@ -101,7 +124,7 @@ export function LunchEditor({ lunch }: { lunch: LunchRow }) {
             <option value="rescheduled">Rescheduled</option>
           </select>
         </label>
-        <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400 sm:col-span-2">
+        <label className="text-xs text-violet-700 dark:text-slate-400 sm:col-span-2">
           Restaurant / place
           <input
             value={restaurant}
@@ -110,7 +133,7 @@ export function LunchEditor({ lunch }: { lunch: LunchRow }) {
             className="mt-1 block w-full rounded border px-2 py-1.5 text-sm"
           />
         </label>
-        <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
+        <label className="text-xs text-violet-700 dark:text-slate-400">
           People in office
           <input
             type="number"
@@ -120,7 +143,7 @@ export function LunchEditor({ lunch }: { lunch: LunchRow }) {
             className="mt-1 block w-full rounded border px-2 py-1.5 text-sm"
           />
         </label>
-        <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
+        <label className="text-xs text-violet-700 dark:text-slate-400">
           Total meal cost ($)
           <input
             type="number"
@@ -132,14 +155,14 @@ export function LunchEditor({ lunch }: { lunch: LunchRow }) {
           />
         </label>
         {perHead != null && (
-          <p className="text-sm text-slate-600 dark:text-slate-400 dark:text-slate-400 sm:col-span-2">
+          <p className="text-sm text-violet-800 dark:text-slate-400 sm:col-span-2">
             ≈ <strong>${perHead}</strong> per person
             {Number.isFinite(heads) && heads > 0 && Number.isFinite(total)
               ? " (from total ÷ headcount)"
               : ""}
           </p>
         )}
-        <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400 sm:col-span-2">
+        <label className="text-xs text-violet-700 dark:text-slate-400 sm:col-span-2">
           Food / dietary notes
           <textarea
             rows={2}
@@ -148,7 +171,7 @@ export function LunchEditor({ lunch }: { lunch: LunchRow }) {
             className="mt-1 block w-full rounded border px-2 py-1.5 text-sm"
           />
         </label>
-        <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400 sm:col-span-2">
+        <label className="text-xs text-violet-700 dark:text-slate-400 sm:col-span-2">
           Interaction notes
           <textarea
             rows={2}

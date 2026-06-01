@@ -13,7 +13,6 @@ export type DoctorRow = {
   name: string;
   primary_focus: string | null;
   status: string;
-  priority: string;
   decision_makers: string | null;
   other_names: string | null;
   lunch_scheduled: boolean;
@@ -53,16 +52,18 @@ export type PlannedStop = {
   address: string;
   zone: TerritoryZone;
   reason: string;
-  kind: "lunch" | "visit" | "follow_up" | "coffee" | "office";
+  kind: "lunch" | "visit" | "follow_up" | "coffee" | "office" | "fitting";
   scheduledTime?: string | null;
   suggestedStartTime?: string | null;
   suggestedEndTime?: string | null;
   timeOverrideId?: string;
   anchorId?: string;
   lunchId?: string;
+  orderId?: string;
   dayPeriod?: "morning" | "afternoon";
   score: number;
   isManual?: boolean;
+  isNonDoctor?: boolean;
 };
 
 export type StopTimeOverride = {
@@ -96,6 +97,7 @@ export type OrderRow = {
   status: string;
   pipeline_stage: string;
   patient_label: string | null;
+  insurance_reviewed_at?: string | null;
   fitted_at: string | null;
   payment_year: number | null;
   payment_month: number | null;
@@ -108,6 +110,10 @@ export type OrderRow = {
   actual_cost: number | null;
   insurance: string | null;
   affected_bone: string | null;
+  fitting_address?: string | null;
+  order_total?: number | null;
+  insurance_expected?: number | null;
+  patient_responsibility_total?: number | null;
   source: string;
   doctor_name?: string | null;
   facility_name?: string | null;
@@ -131,6 +137,7 @@ export type SaleRecordRow = {
   affected_bone: string | null;
   product: string | null;
   notes: string | null;
+  payment_source?: string | null;
   doctor_name?: string | null;
   facility_name?: string | null;
 };
@@ -173,6 +180,15 @@ export type DayAnchorRow = {
   sort_order: number;
   is_auto?: boolean;
   lunch_id?: string | null;
+  order_id?: string | null;
+  patient_name?: string | null;
+  manual_address?: string | null;
+  restaurant?: string | null;
+  food_notes?: string | null;
+  interaction_notes?: string | null;
+  headcount?: number | null;
+  total_cost?: number | null;
+  cost_per_head?: number | null;
   doctor_name?: string | null;
   facility_name?: string | null;
   address?: string | null;
@@ -203,6 +219,14 @@ export type NoteRow = {
   body: string;
   category?: string | null;
   created_at: string;
+};
+
+export type DoctorDayNoteRow = {
+  id: string;
+  doctor_id: string;
+  note_date: string;
+  body: string;
+  updated_at: string;
 };
 
 export type DayPlanSettings = {
@@ -236,6 +260,7 @@ export type LunchRow = {
   doctor_id: string | null;
   facility_id: string | null;
   lunch_date: string;
+  is_date_tbd?: boolean;
   start_time: string | null;
   headcount: number | null;
   food_notes: string | null;

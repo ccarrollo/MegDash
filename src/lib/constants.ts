@@ -1,9 +1,3 @@
-export const PRIORITY_WEIGHT: Record<string, number> = {
-  High: 3,
-  Medium: 2,
-  Low: 1,
-};
-
 export const STATUS_WEIGHT: Record<string, number> = {
   "1. Active": 3,
   "2. Introduced": 2,
@@ -36,6 +30,16 @@ export const VISIT_OUTCOMES = [
 
 export const ANCHOR_TYPES = [
   { value: "coffee", label: "Coffee / morning drop-off" },
+  { value: "breakfast", label: "Breakfast" },
   { value: "lunch", label: "Lunch" },
-  { value: "office", label: "Office visit" },
+  { value: "fitting", label: "Fitting" },
+] as const;
+
+export const DEVICE_MODEL_OPTIONS = [
+  "AccelStim",
+  "5313",
+  "5314",
+  "5315",
+  "5302",
+  "5303",
 ] as const;

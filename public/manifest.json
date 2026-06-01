@@ -4,7 +4,7 @@
   "description": "Daily prospecting plan",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#2563eb",
+  "background_color": "#ede9fe",
+  "theme_color": "#9333ea",
   "orientation": "portrait"
 }

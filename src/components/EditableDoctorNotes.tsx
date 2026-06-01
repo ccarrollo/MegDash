@@ -61,16 +61,16 @@ export function EditableDoctorNotes({
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+    <section className="rounded-xl border border-violet-200 dark:border-slate-700 bg-fuchsia-50 dark:bg-slate-900 p-4">
       <h2 className="font-semibold">Notes</h2>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
+      <p className="mt-1 text-xs text-violet-700 dark:text-slate-400">
         Imported sheet text and timeline entries are merged here. Edit and save
         each section.
       </p>
       <div className="mt-3 space-y-4">
         {FIELDS.map(({ key, label, facility }) => (
           <label key={key} className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wide text-violet-700 dark:text-slate-400">
               {label}
             </span>
             <textarea
@@ -80,7 +80,7 @@ export function EditableDoctorNotes({
                 setValues((v) => ({ ...v, [key]: e.target.value }))
               }
               placeholder={`${label}…`}
-              className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-violet-300 dark:border-slate-600 px-3 py-2 text-sm"
             />
             <button
               type="button"

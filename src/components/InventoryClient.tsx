@@ -26,11 +26,14 @@ export function InventoryClient({ items }: { items: InventoryItemRow[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stimId, quantity: next }),
       });
-      if (!res.ok) throw new Error("failed");
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? "failed");
+      }
       setValues((prev) => ({ ...prev, [stimId]: String(next) }));
       router.refresh();
-    } catch {
-      alert("Could not update inventory.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not update inventory.");
     } finally {
       setSaving((prev) => ({ ...prev, [stimId]: false }));
     }
@@ -51,11 +54,11 @@ export function InventoryClient({ items }: { items: InventoryItemRow[] }) {
         return (
           <div
             key={stimId}
-            className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"
+            className="rounded-xl border border-violet-200 bg-violet-50 p-4 dark:border-slate-700 dark:bg-slate-900"
           >
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Bone stim ID</p>
+                <p className="text-xs text-violet-700 dark:text-slate-400">Bone stim ID</p>
                 <p className="text-lg font-semibold">{stimId}</p>
               </div>
 
@@ -64,7 +67,7 @@ export function InventoryClient({ items }: { items: InventoryItemRow[] }) {
                   type="button"
                   disabled={isSaving || current <= 0}
                   onClick={() => void saveQuantity(stimId, Math.max(0, current - 1))}
-                  className="h-9 w-9 rounded-lg border border-slate-300 text-lg disabled:opacity-50 dark:border-slate-600"
+                  className="h-9 w-9 rounded-lg border border-violet-300 text-lg disabled:opacity-50 dark:border-slate-600"
                 >
                   -
                 </button>
@@ -76,13 +79,22 @@ export function InventoryClient({ items }: { items: InventoryItemRow[] }) {
                     setValues((prev) => ({ ...prev, [stimId]: e.target.value }))
                   }
                   onBlur={() => void saveQuantity(stimId, parseOrZero(values[stimId] ?? "0"))}
-                  className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-center text-base font-medium dark:border-slate-600 dark:bg-slate-800"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void saveQuantity(
+                        stimId,
+                        parseOrZero(values[stimId] ?? "0"),
+                      );
+                    }
+                  }}
+                  className="w-20 rounded-lg border border-violet-300 px-2 py-1.5 text-center text-base font-medium dark:border-slate-600 dark:bg-slate-800"
                 />
                 <button
                   type="button"
                   disabled={isSaving}
                   onClick={() => void saveQuantity(stimId, current + 1)}
-                  className="h-9 w-9 rounded-lg border border-slate-300 text-lg disabled:opacity-50 dark:border-slate-600"
+                  className="h-9 w-9 rounded-lg border border-violet-300 text-lg disabled:opacity-50 dark:border-slate-600"
                 >
                   +
                 </button>

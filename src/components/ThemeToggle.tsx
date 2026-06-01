@@ -24,7 +24,7 @@ export function ThemeToggle() {
       <button
         type="button"
         aria-label="Theme"
-        className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-sm dark:border-slate-600"
+        className="rounded-lg border border-violet-200 dark:border-slate-700 p-2 text-sm dark:border-slate-600"
       >
         ◐
       </button>
@@ -36,7 +36,7 @@ export function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={mode === "dark" ? "Switch to light mode" : "Switch to night mode"}
-      className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+      className="rounded-lg border border-violet-200 dark:border-slate-700 bg-violet-50/70 dark:bg-slate-800 px-2.5 py-1.5 text-sm text-violet-900 dark:text-slate-300 hover:bg-violet-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
     >
       {mode === "dark" ? "☀️ Light" : "🌙 Night"}
     </button>

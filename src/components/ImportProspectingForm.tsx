@@ -79,21 +79,21 @@ export function ImportProspectingForm() {
   }
 
   return (
-    <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-slate-950/50">
+    <div className="space-y-6 rounded-xl border border-violet-200 bg-violet-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-slate-950/50">
       <div>
         <h2 className="text-lg font-semibold">Import doctors (both tabs)</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-violet-700 dark:text-slate-400">
           Export <strong>Relationships</strong> and <strong>Prospecting</strong>{" "}
           from Meg AI Dash as CSV. Upload both — existing doctors are kept; new
           targets from Prospecting are added.
         </p>
       </div>
 
-      <div className="space-y-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
-        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+      <div className="space-y-3 rounded-lg border border-violet-200 p-3 dark:border-slate-700">
+        <p className="text-sm font-medium text-violet-900 dark:text-slate-300">
           Recommended: both tabs
         </p>
-        <label className="block text-sm text-slate-600 dark:text-slate-400">
+        <label className="block text-sm text-violet-800 dark:text-slate-400">
           Relationships tab
           <input
             type="file"
@@ -102,10 +102,10 @@ export function ImportProspectingForm() {
               const file = e.target.files?.[0];
               if (file) void onRelationshipsFile(file);
             }}
-            className="mt-1 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:file:bg-slate-800"
+            className="mt-1 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-violet-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:file:bg-slate-800"
           />
         </label>
-        <label className="block text-sm text-slate-600 dark:text-slate-400">
+        <label className="block text-sm text-violet-800 dark:text-slate-400">
           Prospecting tab (targets + referrals)
           <input
             type="file"
@@ -114,13 +114,13 @@ export function ImportProspectingForm() {
               const file = e.target.files?.[0];
               if (file) void onProspectingFile(file);
             }}
-            className="mt-1 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:file:bg-slate-800"
+            className="mt-1 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-violet-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:file:bg-slate-800"
           />
         </label>
       </div>
 
-      <details className="text-sm text-slate-600 dark:text-slate-400">
-        <summary className="cursor-pointer font-medium text-slate-700 dark:text-slate-300">
+      <details className="text-sm text-violet-800 dark:text-slate-400">
+        <summary className="cursor-pointer font-medium text-violet-900 dark:text-slate-300">
           Or import a single CSV
         </summary>
         <div className="mt-3 space-y-2">
@@ -131,19 +131,19 @@ export function ImportProspectingForm() {
               const file = e.target.files?.[0];
               if (file) void onSingleFile(file);
             }}
-            className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:file:bg-slate-800"
+            className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-violet-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:file:bg-slate-800"
           />
           <textarea
             value={singleCsv}
             onChange={(e) => setSingleCsv(e.target.value)}
             placeholder="Or paste one tab’s CSV here…"
             rows={6}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600"
+            className="w-full rounded-lg border border-violet-300 px-3 py-2 text-sm dark:border-slate-600"
           />
         </div>
       </details>
 
-      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+      <label className="flex items-center gap-2 text-sm text-violet-900 dark:text-slate-300">
         <input
           type="checkbox"
           checked={replaceExisting}
@@ -163,7 +163,7 @@ export function ImportProspectingForm() {
 
       {message && (
         <p
-          className="text-sm text-slate-600 dark:text-slate-400"
+          className="text-sm text-violet-800 dark:text-slate-400"
           aria-live="polite"
         >
           {message}

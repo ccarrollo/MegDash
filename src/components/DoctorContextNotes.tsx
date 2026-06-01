@@ -2,11 +2,11 @@ import type { DoctorRow, LunchRow, NoteRow } from "@/lib/types";
 
 function NoteBlock({ label, body }: { label: string; body: string }) {
   return (
-    <div className="rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-400">
+    <div className="rounded-lg border border-violet-100 dark:border-slate-800 bg-violet-50/70 dark:bg-slate-800 p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-violet-700 dark:text-slate-400">
         {label}
       </p>
-      <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">{body}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm text-violet-900 dark:text-slate-300">{body}</p>
     </div>
   );
 }
@@ -54,15 +54,15 @@ export function DoctorContextNotes({
   const hasSavedNotes = notes.length > 0;
   if (blocks.length === 0 && !hasSavedNotes) {
     return (
-      <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+      <section className="rounded-xl border border-violet-200 dark:border-slate-700 bg-fuchsia-50 dark:bg-slate-900 p-4">
         <h2 className="font-semibold">Notes</h2>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-400">No imported or saved notes yet.</p>
+        <p className="mt-2 text-sm text-violet-700 dark:text-slate-400">No imported or saved notes yet.</p>
       </section>
     );
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+    <section className="rounded-xl border border-violet-200 dark:border-slate-700 bg-fuchsia-50 dark:bg-slate-900 p-4">
       <h2 className="font-semibold">Notes</h2>
       <div className="mt-3 space-y-2">
         {blocks.map((b) => (
@@ -70,14 +70,14 @@ export function DoctorContextNotes({
         ))}
         {hasSavedNotes && (
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-400">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-violet-700 dark:text-slate-400">
               Saved notes
             </p>
             <ul className="space-y-2">
               {notes.map((n) => (
                 <li
                   key={n.id}
-                  className="rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-700 dark:text-slate-300"
+                  className="rounded-lg border border-violet-100 dark:border-slate-800 bg-violet-50/70 dark:bg-slate-800 p-3 text-sm text-violet-900 dark:text-slate-300"
                 >
                   {n.body}
                 </li>

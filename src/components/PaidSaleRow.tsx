@@ -5,7 +5,7 @@ import { useState } from "react";
 import { saleMySalesAmount } from "@/lib/data";
 import type { SaleRecordRow } from "@/lib/types";
 
-const PRODUCTS = ["AccelStim", "PhysioStim", "Other"] as const;
+const PRODUCTS = ["AccelStim", "PhysioStim"] as const;
 
 const MONTH_NAMES = [
   "Jan",
@@ -28,7 +28,8 @@ function money(n: number) {
 
 function productSelectValue(product: string | null) {
   if (product === "AccelStim" || product === "PhysioStim") return product;
-  return "Other";
+  if ((product ?? "").toLowerCase().includes("accel")) return "AccelStim";
+  return "PhysioStim";
 }
 
 export function PaidSaleRow({
@@ -46,6 +47,9 @@ export function PaidSaleRow({
   const [mySalesAmount, setMySalesAmount] = useState(
     String(saleMySalesAmount(sale)),
   );
+  const [actualCost, setActualCost] = useState(
+    sale.actual_cost != null ? String(sale.actual_cost) : "",
+  );
   const [product, setProduct] = useState(productSelectValue(sale.product));
   const [paymentYear, setPaymentYear] = useState(String(sale.payment_year));
   const [paymentMonth, setPaymentMonth] = useState(String(sale.payment_month));
@@ -55,6 +59,7 @@ export function PaidSaleRow({
     setDoctorId(sale.doctor_id ?? "");
     setPatientLabel(sale.patient_label ?? "");
     setMySalesAmount(String(saleMySalesAmount(sale)));
+    setActualCost(sale.actual_cost != null ? String(sale.actual_cost) : "");
     setProduct(productSelectValue(sale.product));
     setPaymentYear(String(sale.payment_year));
     setPaymentMonth(String(sale.payment_month));
@@ -95,7 +100,9 @@ export function PaidSaleRow({
           paymentYear: py,
           paymentMonth: pm,
           mySalesAmount: amt,
-          product: product === "Other" ? null : product,
+          actualCost:
+            actualCost.trim() === "" ? null : parseFloat(actualCost),
+          product,
           notes: notes || null,
         }),
       });
@@ -141,14 +148,14 @@ export function PaidSaleRow({
 
   if (!editing) {
     return (
-      <li className="rounded-lg border border-slate-100 dark:border-slate-800 p-2 text-sm">
+      <li className="rounded-lg border border-violet-100 dark:border-slate-800 p-2 text-sm">
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="font-medium">
               {sale.patient_label ?? "Patient"}
               {sale.doctor_name ? ` — ${sale.doctor_name}` : ""}
             </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
+            <p className="text-xs text-violet-700 dark:text-slate-400">
               Payment: {MONTH_NAMES[sale.payment_month - 1]} {sale.payment_year}
               {sale.product && ` · ${sale.product}`}
               {` · My Sales ${money(amt)}`}
@@ -156,7 +163,7 @@ export function PaidSaleRow({
                 ` · Device ${money(Number(sale.actual_cost))}`}
             </p>
             {sale.order_id && (
-              <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
+              <p className="mt-0.5 text-xs text-violet-600 dark:text-slate-400">
                 Linked to pipeline order
               </p>
             )}
@@ -177,18 +184,18 @@ export function PaidSaleRow({
     <li className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/30 p-3 text-sm space-y-3">
       <p className="font-medium">Edit paid sale</p>
       {sale.order_id && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
+        <p className="text-xs text-violet-700 dark:text-slate-400">
           Linked to a pipeline order — saves update both records.
         </p>
       )}
 
       <label className="block text-xs">
-        <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Doctor</span>
+        <span className="text-violet-700 dark:text-slate-400">Doctor</span>
         <select
           value={doctorId}
           onChange={(e) => setDoctorId(e.target.value)}
           disabled={saving}
-          className="mt-1 w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-900"
+          className="mt-1 w-full rounded border px-2 py-1 text-sm bg-fuchsia-50 dark:bg-slate-900"
         >
           <option value="">— optional —</option>
           {doctors.map((d) => (
@@ -201,18 +208,18 @@ export function PaidSaleRow({
       </label>
 
       <label className="block text-xs">
-        <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Patient name</span>
+        <span className="text-violet-700 dark:text-slate-400">Patient name</span>
         <input
           value={patientLabel}
           onChange={(e) => setPatientLabel(e.target.value)}
           disabled={saving}
-          className="mt-1 w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-900"
+          className="mt-1 w-full rounded border px-2 py-1 text-sm bg-fuchsia-50 dark:bg-slate-900"
         />
       </label>
 
       <div className="grid grid-cols-2 gap-2">
         <label className="block text-xs">
-          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">My Sales $ *</span>
+          <span className="text-violet-700 dark:text-slate-400">My Sales $ *</span>
           <input
             type="number"
             min={0}
@@ -220,39 +227,53 @@ export function PaidSaleRow({
             value={mySalesAmount}
             onChange={(e) => setMySalesAmount(e.target.value)}
             disabled={saving}
-            className="mt-1 w-full rounded border px-2 py-1 text-sm font-semibold bg-white dark:bg-slate-900"
+            className="mt-1 w-full rounded border px-2 py-1 text-sm font-semibold bg-fuchsia-50 dark:bg-slate-900"
           />
         </label>
         <label className="block text-xs">
-          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Product</span>
-          <select
-            value={product}
-            onChange={(e) => setProduct(e.target.value)}
+          <span className="text-violet-700 dark:text-slate-400">Device cost $</span>
+          <input
+            type="number"
+            min={0}
+            step={0.01}
+            value={actualCost}
+            onChange={(e) => setActualCost(e.target.value)}
             disabled={saving}
-            className="mt-1 w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-900"
-          >
-            {PRODUCTS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
+            placeholder="Optional"
+            className="mt-1 w-full rounded border px-2 py-1 text-sm bg-fuchsia-50 dark:bg-slate-900"
+          />
         </label>
       </div>
 
+      <label className="block text-xs">
+        <span className="text-violet-700 dark:text-slate-400">Product</span>
+        <select
+          value={product}
+          onChange={(e) => setProduct(e.target.value)}
+          disabled={saving}
+          className="mt-1 w-full rounded border px-2 py-1 text-sm bg-fuchsia-50 dark:bg-slate-900"
+        >
+          {PRODUCTS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+      </label>
+
       <div className="grid grid-cols-2 gap-2">
         <label className="block text-xs">
-          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Payment year</span>
+          <span className="text-violet-700 dark:text-slate-400">Payment year</span>
           <input
             type="number"
             value={paymentYear}
             onChange={(e) => setPaymentYear(e.target.value)}
             disabled={saving}
-            className="mt-1 w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-900"
+            className="mt-1 w-full rounded border px-2 py-1 text-sm bg-fuchsia-50 dark:bg-slate-900"
           />
         </label>
         <label className="block text-xs">
-          <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Payment month (1–12)</span>
+          <span className="text-violet-700 dark:text-slate-400">Payment month (1–12)</span>
           <input
             type="number"
             min={1}
@@ -260,18 +281,18 @@ export function PaidSaleRow({
             value={paymentMonth}
             onChange={(e) => setPaymentMonth(e.target.value)}
             disabled={saving}
-            className="mt-1 w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-900"
+            className="mt-1 w-full rounded border px-2 py-1 text-sm bg-fuchsia-50 dark:bg-slate-900"
           />
         </label>
       </div>
 
       <label className="block text-xs">
-        <span className="text-slate-500 dark:text-slate-400 dark:text-slate-400">Notes</span>
+        <span className="text-violet-700 dark:text-slate-400">Notes</span>
         <input
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           disabled={saving}
-          className="mt-1 w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-900"
+          className="mt-1 w-full rounded border px-2 py-1 text-sm bg-fuchsia-50 dark:bg-slate-900"
         />
       </label>
 
@@ -288,7 +309,7 @@ export function PaidSaleRow({
           type="button"
           disabled={saving}
           onClick={cancelEdit}
-          className="rounded border bg-white dark:bg-slate-900 px-3 py-1.5 text-xs"
+          className="rounded border bg-fuchsia-50 dark:bg-slate-900 px-3 py-1.5 text-xs"
         >
           Cancel
         </button>

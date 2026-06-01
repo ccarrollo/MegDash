@@ -145,7 +145,6 @@ export async function POST(request: Request) {
         name: row.doctorName,
         primary_focus: row.primaryFocus,
         status: row.status,
-        priority: row.priority,
         decision_makers: row.decisionMakers,
         other_names: row.otherNames,
         lunch_scheduled: row.lunchScheduled,
