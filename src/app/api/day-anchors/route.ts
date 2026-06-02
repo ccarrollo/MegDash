@@ -91,13 +91,23 @@ export async function POST(request: Request) {
     .eq("plan_date", body.planDate);
   sortOrder = count ?? 0;
 
+  let resolvedFacilityId = body.facilityId ?? null;
+  if (!resolvedFacilityId && targets.length > 0) {
+    const { data: doctorRow } = await supabase
+      .from("doctors")
+      .select("facility_id")
+      .eq("id", targets[0])
+      .maybeSingle();
+    resolvedFacilityId = (doctorRow?.facility_id as string | null) ?? null;
+  }
+
   const inserts =
     targets.length > 0
       ? targets.map((doctorId, idx) =>
           buildAnchorInsertRow({
             planDate: body.planDate!,
             doctorId,
-            facilityId: body.facilityId ?? null,
+            facilityId: resolvedFacilityId,
             anchorTime: body.anchorTime ?? null,
             anchorType,
             label: body.label ?? null,
@@ -137,7 +147,7 @@ export async function POST(request: Request) {
     const lunchRow = lunchPayloadFromMeal({
       ...meal,
       planDate: body.planDate,
-      facilityId: body.facilityId ?? null,
+      facilityId: body.facilityId ?? resolvedFacilityId ?? null,
       anchorTime: body.anchorTime ?? null,
       label: body.label ?? null,
     });

@@ -473,6 +473,10 @@ export function AnchorsTabClient({
               {fittingDoctorId && !placeQuery.trim() && (
                 <p className="text-xs text-violet-700 dark:text-slate-400">
                   {doctors.find((d) => d.id === fittingDoctorId)?.name ?? "Doctor"} selected
+                  {(() => {
+                    const d = doctors.find((doc) => doc.id === fittingDoctorId);
+                    return d?.facility_name ? ` · ${d.facility_name}` : "";
+                  })()}
                   {" · "}
                   <button
                     type="button"

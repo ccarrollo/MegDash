@@ -17,6 +17,7 @@ export async function PATCH(request: Request, ctx: Params) {
   const { id } = await ctx.params;
   const body = (await request.json()) as {
     status?: string;
+    facilityId?: string | null;
     followUpDate?: string | null;
     follow_up_lunch?: string | null;
     front_desk_notes?: string | null;
@@ -34,6 +35,15 @@ export async function PATCH(request: Request, ctx: Params) {
 
   const payload: Record<string, string | boolean | null> = {};
   if (typeof body.status === "string") payload.status = body.status.trim();
+  if ("facilityId" in body) {
+    if (!body.facilityId?.trim()) {
+      return NextResponse.json(
+        { error: "facilityId is required when changing office" },
+        { status: 400 },
+      );
+    }
+    payload.facility_id = body.facilityId.trim();
+  }
   if ("followUpDate" in body) payload.follow_up_date = body.followUpDate || null;
   if ("follow_up_lunch" in body) payload.follow_up_lunch = body.follow_up_lunch ?? null;
   if ("followUpLunch" in body) payload.follow_up_lunch = body.followUpLunch ?? null;

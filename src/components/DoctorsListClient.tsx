@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { formatDoctorFacilityName } from "@/lib/facilityDisplay";
 import {
   type DoctorSortKey,
   filterDoctors,
@@ -155,7 +156,9 @@ export function DoctorsListClient({
                     >
                       {d.name}
                     </Link>
-                    <p className="text-sm text-violet-800 dark:text-slate-400">{d.facility_name}</p>
+                    <p className="text-sm text-violet-800 dark:text-slate-400">
+                      {formatDoctorFacilityName(d)}
+                    </p>
                     <a
                       href={mapsUrl}
                       target="_blank"

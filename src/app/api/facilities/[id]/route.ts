@@ -13,10 +13,24 @@ export async function PATCH(request: Request, ctx: Params) {
   }
 
   const { id } = await ctx.params;
-  const body = (await request.json()) as { officeVibe?: string | null };
+  const body = (await request.json()) as {
+    name?: string | null;
+    address?: string | null;
+    city?: string | null;
+    locationLabel?: string | null;
+    officeVibe?: string | null;
+  };
 
   const payload: Record<string, string | null> = {};
+  if ("name" in body) payload.name = body.name?.trim() || null;
+  if ("address" in body) payload.address = body.address?.trim() || null;
+  if ("city" in body) payload.city = body.city?.trim() || null;
+  if ("locationLabel" in body) payload.location_label = body.locationLabel?.trim() || null;
   if ("officeVibe" in body) payload.office_vibe = body.officeVibe ?? null;
+
+  if (payload.name === null && "name" in body) {
+    return NextResponse.json({ error: "Facility name is required" }, { status: 400 });
+  }
 
   const { error } = await supabase.from("facilities").update(payload).eq("id", id);
   if (error) {

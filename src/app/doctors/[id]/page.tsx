@@ -11,8 +11,10 @@ import {
   fetchDoctorNotes,
   fetchDoctorOrders,
   fetchDoctorVisits,
+  fetchFacilities,
   fetchPaymentsForOrders,
 } from "@/lib/data";
+import { formatDoctorFacilityName } from "@/lib/facilityDisplay";
 import { ZONE_LABELS } from "@/lib/zones";
 
 type Props = {
@@ -47,12 +49,13 @@ export default async function DoctorProfilePage({ params }: Props) {
   if (!doctor) return notFound();
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(doctor.address)}`;
 
-  const [visits, notes, dayNotes, lunches, orders] = await Promise.all([
+  const [visits, notes, dayNotes, lunches, orders, facilities] = await Promise.all([
     fetchDoctorVisits(id),
     fetchDoctorNotes(id),
     fetchDoctorDayNotes(id),
     fetchDoctorLunches(id),
     fetchDoctorOrders(id),
+    fetchFacilities(),
   ]);
 
   const paymentsMap = await fetchPaymentsForOrders(orders.map((o) => o.id));
@@ -73,7 +76,9 @@ export default async function DoctorProfilePage({ params }: Props) {
           />
           <div className="min-w-0 flex-1">
         <h1 className="text-xl font-bold">{doctor.name}</h1>
-        <p className="text-sm text-violet-800 dark:text-slate-400">{doctor.facility_name}</p>
+        <p className="text-sm text-violet-800 dark:text-slate-400">
+          {formatDoctorFacilityName(doctor)}
+        </p>
         <a
           href={mapsUrl}
           target="_blank"
@@ -119,9 +124,7 @@ export default async function DoctorProfilePage({ params }: Props) {
         paymentsByOrderId={paymentsByOrderId}
       />
 
-      <DoctorProfileEditor
-        doctor={doctor}
-      />
+      <DoctorProfileEditor doctor={doctor} facilities={facilities} />
     </div>
   );
 }
