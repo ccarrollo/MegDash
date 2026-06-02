@@ -1,4 +1,5 @@
 import { mergeLunchAnchors } from "./anchors";
+import { resolveFittingFields } from "./fittingAnchor";
 import {
   buildYearCommission,
   isAccelStimProduct,
@@ -250,13 +251,20 @@ export function enrichAnchors(
 ): DayAnchorRow[] {
   return anchors.map((a) => {
     const d = a.doctor_id ? doctors.find((doc) => doc.id === a.doctor_id) : null;
+    const fitting =
+      a.anchor_type === "fitting" ? resolveFittingFields(a) : null;
+    const patientName = fitting?.patientName ?? a.patient_name ?? null;
+    const manualAddress = fitting?.manualAddress ?? a.manual_address ?? null;
     return {
       ...a,
-      doctor_name: a.patient_name ?? d?.name ?? null,
+      label: fitting?.label ?? a.label ?? null,
+      patient_name: patientName,
+      manual_address: manualAddress,
+      doctor_name: d?.name ?? a.doctor_name ?? null,
       facility_name:
         d?.facility_name ??
         (a.anchor_type === "fitting" ? "Home fitting" : null),
-      address: a.manual_address ?? d?.address ?? null,
+      address: manualAddress ?? d?.address ?? null,
       zone: d?.zone ?? null,
     };
   });

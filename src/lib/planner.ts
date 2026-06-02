@@ -1,4 +1,5 @@
 import { planDateIso } from "./dateUtils";
+import { resolveFittingFields } from "./fittingAnchor";
 import { STATUS_WEIGHT } from "./constants";
 import {
   isRoadTripZone,
@@ -132,21 +133,32 @@ export function buildScheduledStops(
       : null;
     if (d) usedDoctorIds.add(d.id);
     if (!d && kind !== "fitting") continue;
+    const fitting =
+      kind === "fitting" ? resolveFittingFields(anchor) : null;
     stops.push({
       doctorId: d?.id ?? `fitting-${anchor.id}`,
-      doctorName: anchor.patient_name ?? d?.name ?? "Fitting patient",
+      doctorName: d?.name ?? fitting?.patientName ?? "Fitting patient",
       facilityName:
         d?.facility_name ??
         (kind === "fitting" ? "Home fitting" : "Unknown facility"),
       address:
-        anchor.manual_address ?? d?.address ?? "Address needed — update fitting",
+        fitting?.manualAddress ??
+        d?.address ??
+        "Address needed — update fitting",
       zone: d?.zone ?? "unknown",
       kind,
       scheduledTime: anchor.anchor_time,
       anchorId: anchor.id,
       orderId: anchor.order_id ?? undefined,
       isNonDoctor: !d,
-      reason: anchor.label?.trim() || ANCHOR_REASON[anchor.anchor_type] || "Scheduled anchor",
+      reason:
+        (kind === "fitting" && fitting?.patientName
+          ? `Patient: ${fitting.patientName}`
+          : null) ||
+        fitting?.label?.trim() ||
+        anchor.label?.trim() ||
+        ANCHOR_REASON[anchor.anchor_type] ||
+        "Scheduled anchor",
       score: 100,
     });
   }

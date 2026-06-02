@@ -7,14 +7,10 @@ import {
   formatDoctorNames,
 } from "@/lib/anchorGroup";
 import { isMealAnchorType } from "@/lib/mealAnchor";
+import { formatTime12 } from "@/lib/schedule";
 import type { DayAnchorRow, DoctorRow, FacilityRow } from "@/lib/types";
 import { AnchorEditForm } from "./AnchorEditForm";
 import { AnchorMealSummary } from "./AnchorMealSummary";
-
-function formatTime(value: string | null) {
-  if (!value) return "No time";
-  return value.slice(0, 5);
-}
 
 export function AnchorListItem({
   anchor,
@@ -58,7 +54,7 @@ export function AnchorListItem({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="font-medium capitalize">
-            {anchor.anchor_type} · {formatTime(anchor.anchor_time)}
+            {anchor.anchor_type} · {formatTime12(anchor.anchor_time)}
           </p>
           <p className="text-xs text-violet-700 dark:text-slate-400">
             {doctorLine}

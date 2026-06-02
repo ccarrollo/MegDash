@@ -46,12 +46,13 @@ export function formatDoctorNames(
   doctors?: { id: string; name: string }[],
 ): string {
   const names = siblings
-    .map(
-      (a) =>
-        a.doctor_name ??
-        doctors?.find((d) => d.id === a.doctor_id)?.name ??
-        null,
-    )
+    .map((a) => {
+      if (a.doctor_id) {
+        const fromDoctor = doctors?.find((d) => d.id === a.doctor_id)?.name;
+        if (fromDoctor) return fromDoctor;
+      }
+      return a.doctor_name ?? null;
+    })
     .filter((n): n is string => Boolean(n));
   return [...new Set(names)].join(", ") || "No doctor";
 }

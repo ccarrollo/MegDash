@@ -1,3 +1,4 @@
+import { buildFittingAnchorLabel } from "./fittingAnchor";
 import { mealFieldsForDb, type MealAnchorInput } from "./mealAnchor";
 
 /** Row shape for daily_plan_anchors insert — omits columns absent on older DBs when unset. */
@@ -23,6 +24,16 @@ export function buildAnchorInsertRow(input: {
     label: input.label ?? null,
     sort_order: input.sortOrder,
   };
+
+  if (input.anchorType === "fitting") {
+    row.label = buildFittingAnchorLabel({
+      label: input.label,
+      patientName: input.patientName,
+      manualAddress: input.manualAddress,
+    });
+    if (input.meal) Object.assign(row, mealFieldsForDb(input.meal));
+    return row;
+  }
 
   if (input.orderId) row.order_id = input.orderId;
   const patient = input.patientName?.trim();

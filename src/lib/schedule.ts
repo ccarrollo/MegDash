@@ -22,6 +22,12 @@ function formatDisplay(hhmm: string): string {
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
+/** HH:MM or HH:MM:SS → "3:45 PM" */
+export function formatTime12(value: string | null | undefined): string {
+  if (!value) return "No time";
+  return formatDisplay(value.slice(0, 5));
+}
+
 export function formatTimeRange(start: string, end: string): string {
   return `${formatDisplay(start)} – ${formatDisplay(end)}`;
 }

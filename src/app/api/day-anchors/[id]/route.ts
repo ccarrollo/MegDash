@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
-import { computeCostPerHead, isMealAnchorType, parseMealNumbers } from "@/lib/mealAnchor";
+import {
+  buildFittingAnchorLabel,
+  parseFittingAnchorLabel,
+} from "@/lib/fittingAnchor";
+import {
+  computeCostPerHead,
+  isMealAnchorType,
+  parseMealNumbers,
+} from "@/lib/mealAnchor";
 import { clearLunchFromPlan } from "@/lib/lunchSync";
 import { getSupabase } from "@/lib/supabase";
 
@@ -46,7 +54,7 @@ export async function PATCH(request: Request, ctx: Params) {
   const { headcount, totalCost } = parseMealNumbers(body.headcount, body.totalCost);
   const payload: Record<string, string | number | null> = {};
 
-  if ("label" in body) payload.label = body.label?.trim() || null;
+  if ("label" in body && !isFitting) payload.label = body.label?.trim() || null;
   if ("anchorTime" in body) {
     payload.anchor_time = body.anchorTime ? `${body.anchorTime}:00` : null;
   }
@@ -75,11 +83,19 @@ export async function PATCH(request: Request, ctx: Params) {
   }
 
   if (isFitting) {
-    if ("patientName" in body) {
-      payload.patient_name = body.patientName?.trim() || null;
-    }
-    if ("manualAddress" in body) {
-      payload.manual_address = body.manualAddress?.trim() || null;
+    if ("label" in body || "patientName" in body || "manualAddress" in body) {
+      const parsed = parseFittingAnchorLabel(anchor.label);
+      payload.label = buildFittingAnchorLabel({
+        label: "label" in body ? body.label?.trim() || null : parsed.note,
+        patientName:
+          "patientName" in body
+            ? body.patientName?.trim() || null
+            : parsed.patientName,
+        manualAddress:
+          "manualAddress" in body
+            ? body.manualAddress?.trim() || null
+            : parsed.manualAddress,
+      });
     }
   }
 

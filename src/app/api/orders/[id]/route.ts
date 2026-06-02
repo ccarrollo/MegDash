@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { buildAnchorInsertRow } from "@/lib/anchorDb";
 import { DEVICE_MODEL_OPTIONS } from "@/lib/constants";
+import { buildFittingAnchorLabel } from "@/lib/fittingAnchor";
 import { getSupabase } from "@/lib/supabase";
 
 type Params = { params: Promise<{ id: string }> };
@@ -142,6 +144,11 @@ export async function PATCH(request: Request, ctx: Params) {
       .select("id")
       .eq("order_id", id)
       .maybeSingle();
+    const fittingLabel = buildFittingAnchorLabel({
+      label: "Fitting (from order)",
+      patientName: body.patientLabel ?? existing.patient_label ?? null,
+      manualAddress: body.fittingAddress ?? existing.fitting_address ?? null,
+    });
     if (existingAnchor?.id) {
       await supabase
         .from("daily_plan_anchors")
@@ -151,9 +158,7 @@ export async function PATCH(request: Request, ctx: Params) {
           doctor_id: existing.doctor_id,
           facility_id: existing.facility_id,
           anchor_type: "fitting",
-          patient_name: body.patientLabel ?? existing.patient_label ?? null,
-          manual_address: body.fittingAddress ?? existing.fitting_address ?? null,
-          label: "Fitting (from order)",
+          label: fittingLabel,
         })
         .eq("id", existingAnchor.id);
     } else {
@@ -161,18 +166,19 @@ export async function PATCH(request: Request, ctx: Params) {
         .from("daily_plan_anchors")
         .select("id", { count: "exact", head: true })
         .eq("plan_date", fittedDate);
-      await supabase.from("daily_plan_anchors").insert({
-        plan_date: fittedDate,
-        doctor_id: existing.doctor_id,
-        facility_id: existing.facility_id,
-        order_id: id,
-        anchor_time: `${fittedTime}:00`,
-        anchor_type: "fitting",
-        patient_name: body.patientLabel ?? existing.patient_label ?? null,
-        manual_address: body.fittingAddress ?? existing.fitting_address ?? null,
-        label: "Fitting (from order)",
-        sort_order: count ?? 0,
-      });
+      await supabase.from("daily_plan_anchors").insert(
+        buildAnchorInsertRow({
+          planDate: fittedDate,
+          doctorId: existing.doctor_id,
+          facilityId: existing.facility_id,
+          anchorTime: `${fittedTime}:00`,
+          anchorType: "fitting",
+          label: "Fitting (from order)",
+          patientName: body.patientLabel ?? existing.patient_label ?? null,
+          manualAddress: body.fittingAddress ?? existing.fitting_address ?? null,
+          sortOrder: count ?? 0,
+        }) as never,
+      );
     }
   }
 

@@ -9,17 +9,13 @@ import {
 import { addDaysIso, planDateIso } from "@/lib/dateUtils";
 import { isMealAnchorType } from "@/lib/mealAnchor";
 import { filterDoctors, filterFacilities } from "@/lib/search";
+import { formatTime12 } from "@/lib/schedule";
 import type { DayAnchorRow, DoctorRow, FacilityRow } from "@/lib/types";
 import { AnchorMealFields } from "./AnchorMealFields";
 import { AnchorListItem } from "./AnchorListItem";
 import { ListSearchBar } from "./ListSearchBar";
 
 type AnchorKind = "coffee" | "breakfast" | "lunch" | "fitting";
-
-function formatTime(value: string | null) {
-  if (!value) return "No time";
-  return value.slice(0, 5);
-}
 
 function facilitySubtitle(f: FacilityRow) {
   return [f.address, f.location_label, f.city].filter(Boolean).join(" · ");
@@ -327,7 +323,7 @@ export function AnchorsTabClient({
           </a>
           <p className="capitalize text-violet-950 dark:text-slate-200">
             {item.anchorType}
-            {item.anchorTime ? ` · ${formatTime(item.anchorTime)}` : ""}
+            {item.anchorTime ? ` · ${formatTime12(item.anchorTime)}` : ""}
           </p>
           <p className="truncate text-xs text-violet-700 dark:text-slate-400">
             {item.doctorName ?? "No doctor"}
