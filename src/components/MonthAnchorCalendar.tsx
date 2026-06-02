@@ -8,7 +8,7 @@ import { addMonthsIso, formatMonthYear } from "@/lib/dateUtils";
 type AnchorKind = "lunch" | "coffee" | "fitting";
 
 const KIND_COLORS: Record<AnchorKind, string> = {
-  lunch: "bg-fuchsia-500",
+  lunch: "bg-green-500",
   coffee: "bg-orange-500",
   fitting: "bg-purple-500",
 };
@@ -90,7 +90,7 @@ export function MonthAnchorCalendar({
         </button>
       </div>
       <p className="mt-2 text-xs text-violet-700 dark:text-slate-400">
-        Fuchsia lunch · Orange coffee · Purple fitting · Tap month to jump
+        Green lunch · Orange coffee · Purple fitting · Tap month to jump
       </p>
       <div className="mt-3 grid grid-cols-7 gap-1 text-[10px] text-violet-700 dark:text-slate-400">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (

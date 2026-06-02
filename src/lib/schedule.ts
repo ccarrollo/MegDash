@@ -44,6 +44,18 @@ function overrideKey(s: PlannedStop) {
   return `${s.doctorId}:${s.kind}`;
 }
 
+function anchorStartEnd(
+  scheduledTime: string | null | undefined,
+  kind: PlannedStop["kind"],
+): { start: string; end: string } | null {
+  const start = scheduledTime?.slice(0, 5);
+  if (!start) return null;
+  return {
+    start,
+    end: fromMinutes(toMinutes(start) + defaultDuration(kind)),
+  };
+}
+
 export function assignStopTimes(
   stops: PlannedStop[],
   overrides: StopTimeOverride[] = [],
@@ -54,7 +66,7 @@ export function assignStopTimes(
 
   return stops.map((stop) => {
     if (stop.kind === "lunch") {
-      const lunchStart = stop.scheduledTime ?? LUNCH_START;
+      const lunchStart = stop.scheduledTime?.slice(0, 5) ?? LUNCH_START;
       const lunchEnd = fromMinutes(toMinutes(lunchStart) + defaultDuration("lunch"));
       return {
         ...stop,
@@ -66,25 +78,35 @@ export function assignStopTimes(
     }
 
     const ov = overrideMap.get(overrideKey(stop));
-    if (!ov) {
+    if (ov) {
+      const startMins = toMinutes(ov.start_time.slice(0, 5));
+      const endMins = ov.end_time
+        ? toMinutes(ov.end_time.slice(0, 5))
+        : startMins + defaultDuration(stop.kind);
+
       return {
         ...stop,
-        suggestedStartTime: undefined,
-        suggestedEndTime: undefined,
+        suggestedStartTime: fromMinutes(startMins),
+        suggestedEndTime: fromMinutes(endMins),
+        timeOverrideId: ov.id,
+      };
+    }
+
+    const anchorTimes = anchorStartEnd(stop.scheduledTime, stop.kind);
+    if (anchorTimes) {
+      return {
+        ...stop,
+        suggestedStartTime: anchorTimes.start,
+        suggestedEndTime: anchorTimes.end,
         timeOverrideId: undefined,
       };
     }
 
-    const startMins = toMinutes(ov.start_time.slice(0, 5));
-    const endMins = ov.end_time
-      ? toMinutes(ov.end_time.slice(0, 5))
-      : startMins + defaultDuration(stop.kind);
-
     return {
       ...stop,
-      suggestedStartTime: fromMinutes(startMins),
-      suggestedEndTime: fromMinutes(endMins),
-      timeOverrideId: ov.id,
+      suggestedStartTime: undefined,
+      suggestedEndTime: undefined,
+      timeOverrideId: undefined,
     };
   });
 }
