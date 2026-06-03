@@ -13,6 +13,7 @@ export type PlannerOptions = {
   zone?: TerritoryZone;
   prospectCount?: number;
   lunchesOnDate?: LunchRow[];
+  excludeDoctorIds?: Set<string>;
 };
 
 const DEFAULT_PROSPECT_COUNT = 6;
@@ -207,22 +208,24 @@ export function buildScheduledStops(
   return { anchorZone, planDate, stops };
 }
 
-export function buildDailyPlan(
+/** Scored visit picks for the day — never added to the plan automatically. */
+export function buildSuggestedProspects(
   doctors: DoctorRow[],
   anchors: DayAnchorRow[] = [],
   options?: PlannerOptions,
-): { anchorZone: TerritoryZone; planDate: string; stops: PlannedStop[] } {
+): { anchorZone: TerritoryZone; planDate: string; suggestions: PlannedStop[] } {
   const planDate = options?.planDate ?? planDateIso();
   const prospectCount = options?.prospectCount ?? DEFAULT_PROSPECT_COUNT;
   const lunchesOnDate = options?.lunchesOnDate ?? [];
+  const excludeDoctorIds = options?.excludeDoctorIds ?? new Set<string>();
 
-  const { anchorZone, stops: scheduledStops } = buildScheduledStops(
+  const anchorZone = resolveAnchorZone(
     doctors,
     anchors,
-    options,
+    lunchesOnDate,
+    planDate,
+    options?.zone ?? "austin_core",
   );
-  const stops = [...scheduledStops];
-  const usedDoctorIds = new Set(stops.map((s) => s.doctorId));
 
   const sortedAnchors = [...anchors].sort((a, b) => {
     const ta = a.anchor_time ?? "12:00:00";
@@ -240,13 +243,13 @@ export function buildDailyPlan(
     : null;
 
   const anchorFacilityIds = new Set(
-    [...usedDoctorIds]
+    [...excludeDoctorIds]
       .map((id) => doctors.find((d) => d.id === id)?.facility_id)
       .filter((id): id is string => Boolean(id)),
   );
 
   const candidates = doctors
-    .filter((d) => !usedDoctorIds.has(d.id))
+    .filter((d) => !excludeDoctorIds.has(d.id))
     .filter((d) => d.lunch_date !== planDate)
     .map((d) => ({
       d,
@@ -266,6 +269,7 @@ export function buildDailyPlan(
   const morningTarget = Math.ceil(prospectCount / 2);
   const afternoonTarget = prospectCount - morningTarget;
 
+  const suggestions: PlannedStop[] = [];
   let morningAdded = 0;
   let afternoonAdded = 0;
 
@@ -299,7 +303,7 @@ export function buildDailyPlan(
       reasons.push("Near today's anchors");
     }
 
-    stops.push({
+    suggestions.push({
       doctorId: d.id,
       doctorName: d.name,
       facilityName: d.facility_name,
@@ -315,5 +319,28 @@ export function buildDailyPlan(
     else afternoonAdded += 1;
   }
 
-  return { anchorZone, planDate, stops };
+  return { anchorZone, planDate, suggestions };
+}
+
+export function buildDailyPlan(
+  doctors: DoctorRow[],
+  anchors: DayAnchorRow[] = [],
+  options?: PlannerOptions,
+): { anchorZone: TerritoryZone; planDate: string; stops: PlannedStop[] } {
+  const { anchorZone, planDate, stops: scheduledStops } = buildScheduledStops(
+    doctors,
+    anchors,
+    options,
+  );
+  const usedDoctorIds = new Set(scheduledStops.map((s) => s.doctorId));
+  const { suggestions } = buildSuggestedProspects(doctors, anchors, {
+    ...options,
+    excludeDoctorIds: usedDoctorIds,
+  });
+
+  return {
+    anchorZone,
+    planDate,
+    stops: [...scheduledStops, ...suggestions],
+  };
 }

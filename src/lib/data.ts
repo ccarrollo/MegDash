@@ -8,7 +8,8 @@ import {
 } from "./commission";
 import { planDateIso } from "./dateUtils";
 import { assignStopTimes } from "./schedule";
-import { buildDailyPlan, buildScheduledStops } from "./planner";
+import { buildScheduledStops, buildSuggestedProspects } from "./planner";
+import { isArchivedDoctor } from "./doctorStatus";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
 import type {
   DayAnchorRow,
@@ -515,43 +516,43 @@ export async function getPlanForDate(
   );
   const anchors = enrichAnchors(mergedAnchors, doctors);
   const count = prospectCount ?? settings.prospect_count ?? DEFAULT_PROSPECT_COUNT;
-  const autoSuggestions = settings.auto_suggestions !== false;
-  const queueEligibleDoctors = doctors.filter((d) => !d.daily_queue_hidden);
+  const suggestionEligibleDoctors = doctors.filter(
+    (d) => !d.daily_queue_hidden && !isArchivedDoctor(d.status),
+  );
 
-  let anchorZone: TerritoryZone;
-  let stops: PlannedStop[];
+  const manualRows = await fetchManualPlanStops(date);
+  const scheduled = buildScheduledStops(doctors, anchors, {
+    planDate: date,
+    lunchesOnDate,
+  });
+  const anchorZone = scheduled.anchorZone;
+  const scheduledIds = new Set(scheduled.stops.map((s) => s.doctorId));
+  const manualStops = manualStopsToPlanned(manualRows, doctors, date).filter(
+    (s) => !scheduledIds.has(s.doctorId),
+  );
+  const stops = [...scheduled.stops, ...manualStops];
 
-  if (autoSuggestions) {
-    const built = buildDailyPlan(queueEligibleDoctors, anchors, {
+  const planDoctorIds = new Set(stops.map((s) => s.doctorId));
+  const { suggestions } = buildSuggestedProspects(
+    suggestionEligibleDoctors,
+    anchors,
+    {
       planDate: date,
       lunchesOnDate,
       prospectCount: count,
-    });
-    anchorZone = built.anchorZone;
-    stops = built.stops;
-  } else {
-    const manualRows = await fetchManualPlanStops(date);
-    const scheduled = buildScheduledStops(doctors, anchors, {
-      planDate: date,
-      lunchesOnDate,
-    });
-    anchorZone = scheduled.anchorZone;
-    const scheduledIds = new Set(scheduled.stops.map((s) => s.doctorId));
-    const manualStops = manualStopsToPlanned(manualRows, doctors, date).filter(
-      (s) => !scheduledIds.has(s.doctorId),
-    );
-    stops = [...scheduled.stops, ...manualStops];
-  }
+      excludeDoctorIds: planDoctorIds,
+    },
+  );
 
   const timedStops = assignStopTimes(stops, overrides);
   return {
     anchorZone,
     planDate: date,
     stops: timedStops,
+    suggestions,
     doctors,
     anchors,
     prospectCount: count,
-    autoSuggestions,
   };
 }
 

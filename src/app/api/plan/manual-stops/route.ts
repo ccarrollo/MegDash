@@ -64,22 +64,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: insertErr.message }, { status: 500 });
   }
 
-  const { data: settings } = await supabase
-    .from("daily_plan_settings")
-    .select("prospect_count")
-    .eq("plan_date", body.planDate)
-    .maybeSingle();
-
-  await supabase.from("daily_plan_settings").upsert(
-    {
-      plan_date: body.planDate,
-      prospect_count: settings?.prospect_count ?? 6,
-      auto_suggestions: false,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "plan_date" },
-  );
-
   return NextResponse.json({ ok: true });
 }
 

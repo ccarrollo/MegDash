@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isArchivedDoctor } from "@/lib/doctorStatus";
 import { getSupabase } from "@/lib/supabase";
 
 type Params = {
@@ -72,4 +73,42 @@ export async function PATCH(request: Request, ctx: Params) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(_request: Request, ctx: Params) {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Supabase not configured" },
+      { status: 503 },
+    );
+  }
+
+  const { id } = await ctx.params;
+
+  const { data: doctor, error: fetchErr } = await supabase
+    .from("doctors")
+    .select("id, name, status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (fetchErr) {
+    return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+  }
+  if (!doctor) {
+    return NextResponse.json({ error: "Doctor not found" }, { status: 404 });
+  }
+  if (!isArchivedDoctor(String(doctor.status))) {
+    return NextResponse.json(
+      { error: "Only archived doctors can be deleted. Set status to 9. Archived first." },
+      { status: 400 },
+    );
+  }
+
+  const { error } = await supabase.from("doctors").delete().eq("id", id);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, name: doctor.name });
 }

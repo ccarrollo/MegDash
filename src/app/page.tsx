@@ -1,6 +1,5 @@
 import { PlanDateNav } from "@/components/PlanDateNav";
 import { PlanDayClient } from "@/components/PlanDayClient";
-import { MonthAnchorCalendar } from "@/components/MonthAnchorCalendar";
 import { SetupBanner } from "@/components/SetupBanner";
 import {
   formatPlanDateLong,
@@ -22,7 +21,7 @@ export default async function TodayPage({ searchParams }: Props) {
   const setup = getSetupStatus();
   const { date: dateParam } = await searchParams;
   const planDate = parsePlanDate(dateParam);
-  const { stops, doctors, anchors, prospectCount, autoSuggestions } =
+  const { stops, doctors, anchors, suggestions, prospectCount } =
     await getPlanForDate(planDate);
   const facilities = setup.supabase ? await fetchFacilities() : [];
   const monthSummary = setup.supabase
@@ -50,16 +49,13 @@ export default async function TodayPage({ searchParams }: Props) {
         <PlanDayClient
           planDate={planDate}
           stops={stops}
+          suggestions={suggestions}
           doctors={doctors}
           facilities={facilities}
           anchors={anchors}
           prospectCount={prospectCount}
-          autoSuggestions={autoSuggestions}
+          monthSummary={monthSummary}
         />
-      )}
-
-      {setup.supabase && (
-        <MonthAnchorCalendar planDate={planDate} summary={monthSummary} />
       )}
 
       {setup.supabase && (

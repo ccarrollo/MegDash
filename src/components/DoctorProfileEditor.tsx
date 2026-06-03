@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatFacilityDisplayName, formatFacilityOptionLabel, isPlaceholderFacilityName } from "@/lib/facilityDisplay";
+import { isArchivedDoctor } from "@/lib/doctorStatus";
 import { filterFacilities } from "@/lib/search";
 import type { DoctorRow, FacilityRow } from "@/lib/types";
+import { DeleteArchivedDoctorButton } from "./DeleteArchivedDoctorButton";
 import { LogVisitForm } from "./LogVisitForm";
 import { ListSearchBar } from "./ListSearchBar";
 import { OverrideVisitDateForm } from "./OverrideVisitDateForm";
@@ -158,7 +160,7 @@ export function DoctorProfileEditor({
               checked={dailyQueueHidden}
               onChange={(e) => setDailyQueueHidden(e.target.checked)}
             />
-            Don't show in daily queue
+            Don't show in suggestions
           </label>
           <button
             type="button"
@@ -168,6 +170,20 @@ export function DoctorProfileEditor({
           >
             Save settings
           </button>
+          {isArchivedDoctor(status) && (
+            <div className="rounded-lg border border-red-200 bg-red-50/80 p-3 dark:border-red-900 dark:bg-red-950/30">
+              <p className="text-xs text-red-800 dark:text-red-300">
+                This doctor is archived. You can permanently delete them if they
+                should no longer appear in the database.
+              </p>
+              <div className="mt-2">
+                <DeleteArchivedDoctorButton
+                  doctorId={doctor.id}
+                  doctorName={doctor.name}
+                />
+              </div>
+            </div>
+          )}
           <p className="text-xs text-violet-700 dark:text-slate-400">
             Many imports saved the office as “Unknown facility” — set the real
             name above or pick a different office. Set status to{" "}

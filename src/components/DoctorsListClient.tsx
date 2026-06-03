@@ -9,8 +9,10 @@ import {
   sortDoctors,
 } from "@/lib/search";
 import type { DoctorRow, TerritoryZone } from "@/lib/types";
+import { isArchivedDoctor } from "@/lib/doctorStatus";
 import { ZONE_LABELS } from "@/lib/zones";
 import { AddToTodayPlanButton } from "./AddToTodayPlanButton";
+import { DeleteArchivedDoctorButton } from "./DeleteArchivedDoctorButton";
 import { DoctorPhoto } from "./DoctorPhoto";
 import { LogVisitForm } from "./LogVisitForm";
 import { ListSearchBar } from "./ListSearchBar";
@@ -120,9 +122,9 @@ export function DoctorsListClient({
           }
           className="rounded-lg border border-violet-300 dark:border-slate-600 px-2 py-1.5 text-sm"
         >
-          <option value="all">All queue visibility</option>
-          <option value="in_queue">In daily queue</option>
-          <option value="excluded">Excluded from daily queue</option>
+          <option value="all">All suggestion visibility</option>
+          <option value="in_queue">In suggestions</option>
+          <option value="excluded">Excluded from suggestions</option>
         </select>
       </div>
       <p className="text-xs text-violet-700 dark:text-slate-400">
@@ -175,11 +177,19 @@ export function DoctorsListClient({
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2 text-xs">
-                    <AddToTodayPlanButton
-                      doctorId={d.id}
-                      todayDate={todayDate}
-                      onPlan={onPlanSet.has(d.id)}
-                    />
+                    {isArchivedDoctor(d.status) ? (
+                      <DeleteArchivedDoctorButton
+                        doctorId={d.id}
+                        doctorName={d.name}
+                        compact
+                      />
+                    ) : (
+                      <AddToTodayPlanButton
+                        doctorId={d.id}
+                        todayDate={todayDate}
+                        onPlan={onPlanSet.has(d.id)}
+                      />
+                    )}
                     <p className="text-violet-700 dark:text-slate-400">
                       {ZONE_LABELS[d.zone]}
                     </p>

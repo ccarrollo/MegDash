@@ -25,7 +25,6 @@ export async function POST(request: Request) {
     {
       plan_date: body.planDate,
       prospect_count: existing?.prospect_count ?? 6,
-      auto_suggestions: false,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "plan_date" },
