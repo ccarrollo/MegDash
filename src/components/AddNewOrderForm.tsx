@@ -2,15 +2,14 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  combineFittingDateTime,
+  defaultOrderEnteredDate,
+  orderEnteredDate,
+  splitFittingDateTime,
+} from "@/lib/orderFormDates";
 import type { OrderRow } from "@/lib/types";
-
-function dateOnly(value: string | null | undefined) {
-  return value ? value.slice(0, 10) : "";
-}
-
-function datetimeLocal(value: string | null | undefined) {
-  return value ? value.replace("Z", "").slice(0, 16) : "";
-}
+import { OrderDateFields } from "./OrderDateFields";
 
 function orderToFormDefaults(template: OrderRow | null | undefined) {
   if (!template) {
@@ -18,8 +17,9 @@ function orderToFormDefaults(template: OrderRow | null | undefined) {
       patientLabel: "",
       insurance: "",
       doctorId: "",
-      orderedAt: dateOnly(new Date().toISOString()),
-      fittedAt: "",
+      orderedAt: defaultOrderEnteredDate(),
+      fittedDate: "",
+      fittedTime: "",
       channel: "3pp" as "3pp" | "wholesale",
       product: "PhysioStim" as "AccelStim" | "PhysioStim",
       orderTotal: "",
@@ -31,8 +31,10 @@ function orderToFormDefaults(template: OrderRow | null | undefined) {
     patientLabel: template.patient_label ?? "",
     insurance: template.insurance ?? "",
     doctorId: template.doctor_id ?? "",
-    orderedAt: dateOnly(template.ordered_at) || dateOnly(new Date().toISOString()),
-    fittedAt: datetimeLocal(template.fitted_at),
+    orderedAt:
+      orderEnteredDate(template.ordered_at) || defaultOrderEnteredDate(),
+    fittedDate: splitFittingDateTime(template.fitted_at).date,
+    fittedTime: splitFittingDateTime(template.fitted_at).time,
     channel: (template.channel === "wholesale" ? "wholesale" : "3pp") as
       | "3pp"
       | "wholesale",
@@ -66,6 +68,7 @@ export function AddNewOrderForm({
   const [open, setOpen] = useState(Boolean(templateFrom));
   const [saving, setSaving] = useState(false);
   const [doctorQuery, setDoctorQuery] = useState("");
+  const [dateFieldKey, setDateFieldKey] = useState(0);
   const [form, setForm] = useState(() => orderToFormDefaults(templateFrom));
 
   useEffect(() => {
@@ -115,7 +118,7 @@ export function AddNewOrderForm({
           patientLabel: form.patientLabel.trim(),
           insurance: form.insurance.trim() || null,
           orderedAt: form.orderedAt || null,
-          fittedAt: form.fittedAt || null,
+          fittedAt: combineFittingDateTime(form.fittedDate, form.fittedTime),
           channel: form.channel,
           product: form.product,
           orderTotal: parseMoney(form.orderTotal),
@@ -127,6 +130,7 @@ export function AddNewOrderForm({
       if (!res.ok) throw new Error(data.error ?? "Could not save order");
       setOpen(false);
       setForm(orderToFormDefaults(null));
+      setDateFieldKey((k) => k + 1);
       setDoctorQuery("");
       onClearTemplate?.();
       router.refresh();
@@ -141,7 +145,10 @@ export function AddNewOrderForm({
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setDateFieldKey((k) => k + 1);
+          setOpen(true);
+        }}
         className="w-full rounded-lg border border-dashed border-brand-400 bg-fuchsia-50 py-2.5 text-sm font-medium text-brand-700 dark:border-brand-600 dark:bg-slate-900"
       >
         + Add New Order
@@ -216,26 +223,26 @@ export function AddNewOrderForm({
         </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <label className="block text-xs">
-          <span className="text-violet-700 dark:text-slate-400">Entered</span>
-          <input
-            type="date"
-            value={form.orderedAt}
-            onChange={(e) => setForm((f) => ({ ...f, orderedAt: e.target.value }))}
-            className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
-          />
-        </label>
-        <label className="block text-xs">
-          <span className="text-violet-700 dark:text-slate-400">Fitting date</span>
-          <input
-            type="datetime-local"
-            value={form.fittedAt}
-            onChange={(e) => setForm((f) => ({ ...f, fittedAt: e.target.value }))}
-            className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
-          />
-        </label>
-      </div>
+      <OrderDateFields
+        key={dateFieldKey}
+        idPrefix="new-order"
+        orderedAt={form.orderedAt}
+        fittedDate={form.fittedDate}
+        fittedTime={form.fittedTime}
+        onOrderedAtChange={(orderedAt) =>
+          setForm((f) => ({ ...f, orderedAt }))
+        }
+        onFittedDateChange={(fittedDate) =>
+          setForm((f) => ({
+            ...f,
+            fittedDate,
+            fittedTime: fittedDate ? f.fittedTime || "12:00" : "",
+          }))
+        }
+        onFittedTimeChange={(fittedTime) =>
+          setForm((f) => ({ ...f, fittedTime }))
+        }
+      />
 
       <div className="grid grid-cols-2 gap-2">
         <label className="block text-xs">

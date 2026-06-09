@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { OrderDateFields } from "@/components/OrderDateFields";
+import {
+  combineFittingDateTime,
+  orderEnteredDate,
+  splitFittingDateTime,
+} from "@/lib/orderFormDates";
 import {
   expectedCollectedTotal,
   isOrderClosed,
@@ -31,19 +37,12 @@ function money(n: number) {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
-function dateOnly(value: string | null | undefined) {
-  return value ? value.slice(0, 10) : "";
-}
-
-function datetimeLocal(value: string | null | undefined) {
-  return value ? value.replace("Z", "").slice(0, 16) : "";
-}
-
 type OrderForm = {
   patientLabel: string;
   insurance: string;
   orderedAt: string;
-  fittedAt: string;
+  fittedDate: string;
+  fittedTime: string;
   channel: "3pp" | "wholesale";
   product: "AccelStim" | "PhysioStim";
   orderTotal: string;
@@ -55,8 +54,9 @@ function orderToForm(o: OrderRow): OrderForm {
   return {
     patientLabel: o.patient_label ?? "",
     insurance: o.insurance ?? "",
-    orderedAt: dateOnly(o.ordered_at),
-    fittedAt: datetimeLocal(o.fitted_at),
+    orderedAt: orderEnteredDate(o.ordered_at),
+    fittedDate: splitFittingDateTime(o.fitted_at).date,
+    fittedTime: splitFittingDateTime(o.fitted_at).time,
     channel: o.channel === "wholesale" ? "wholesale" : "3pp",
     product: o.product === "AccelStim" ? "AccelStim" : "PhysioStim",
     orderTotal: o.order_total != null ? String(o.order_total) : "",
@@ -167,7 +167,7 @@ export function OrderCard({
           patientLabel: form.patientLabel.trim() || null,
           insurance: form.insurance.trim() || null,
           orderedAt: form.orderedAt || null,
-          fittedAt: form.fittedAt || null,
+          fittedAt: combineFittingDateTime(form.fittedDate, form.fittedTime),
           channel: form.channel,
           product: form.product,
           orderTotal: parseMoney(form.orderTotal),
@@ -355,28 +355,28 @@ export function OrderCard({
                 className="mt-1 w-full rounded border px-2 py-1 text-xs"
               />
             </label>
-            <label className="block text-xs">
-              <span className="text-violet-700">Entered</span>
-              <input
-                type="date"
-                value={form.orderedAt}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, orderedAt: e.target.value }))
+            <div className="col-span-2">
+              <OrderDateFields
+                idPrefix={`order-${order.id}`}
+                orderedAt={form.orderedAt}
+                fittedDate={form.fittedDate}
+                fittedTime={form.fittedTime}
+                inputClassName="mt-1 w-full rounded border px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-900"
+                onOrderedAtChange={(orderedAt) =>
+                  setForm((f) => ({ ...f, orderedAt }))
                 }
-                className="mt-1 w-full rounded border px-2 py-1 text-xs"
-              />
-            </label>
-            <label className="block text-xs">
-              <span className="text-violet-700">Fitting date</span>
-              <input
-                type="datetime-local"
-                value={form.fittedAt}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, fittedAt: e.target.value }))
+                onFittedDateChange={(fittedDate) =>
+                  setForm((f) => ({
+                    ...f,
+                    fittedDate,
+                    fittedTime: fittedDate ? f.fittedTime || "12:00" : "",
+                  }))
                 }
-                className="mt-1 w-full rounded border px-2 py-1 text-xs"
+                onFittedTimeChange={(fittedTime) =>
+                  setForm((f) => ({ ...f, fittedTime }))
+                }
               />
-            </label>
+            </div>
             <label className="block text-xs">
               <span className="text-violet-700">Channel</span>
               <select

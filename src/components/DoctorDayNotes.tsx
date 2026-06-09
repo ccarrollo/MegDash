@@ -267,27 +267,27 @@ export function DoctorDayNotes({
 
   const [expandedDates, setExpandedDates] = useState<Set<string>>(() => new Set());
   const [manualDate, setManualDate] = useState(todayIso());
-  const [pendingOpenDate, setPendingOpenDate] = useState<string | null>(null);
+  /** Dates opened via "+ Add note" before a row exists in dayNotes/visits. */
+  const [manualNoteDates, setManualNoteDates] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [pendingScrollDate, setPendingScrollDate] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     setExpandedDates(readExpanded(doctor.id));
   }, [doctor.id]);
 
   useEffect(() => {
-    if (!pendingOpenDate) return;
-    setExpandedDates((current) => {
-      const next = new Set(current);
-      next.add(pendingOpenDate);
-      persistExpanded(doctor.id, next);
-      return next;
-    });
-    setPendingOpenDate(null);
+    if (!pendingScrollDate) return;
     window.setTimeout(() => {
       document
-        .getElementById(`doctor-note-${pendingOpenDate}`)
+        .getElementById(`doctor-note-${pendingScrollDate}`)
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setPendingScrollDate(null);
     }, 50);
-  }, [pendingOpenDate, doctor.id, buckets.length]);
+  }, [pendingScrollDate, buckets.length, manualNoteDates.size]);
 
   function toggleDate(noteDate: string) {
     setExpandedDates((current) => {
@@ -300,22 +300,33 @@ export function DoctorDayNotes({
   }
 
   function openManualDate() {
-    setPendingOpenDate(manualDate);
+    const date = manualDate;
+    setManualNoteDates((current) => new Set(current).add(date));
+    setExpandedDates((current) => {
+      const next = new Set(current);
+      next.add(date);
+      persistExpanded(doctor.id, next);
+      return next;
+    });
+    setPendingScrollDate(date);
   }
 
   const displayBuckets = useMemo(() => {
-    if (!pendingOpenDate) return buckets;
-    if (buckets.some((b) => b.noteDate === pendingOpenDate)) return buckets;
-    return [
-      {
-        noteDate: pendingOpenDate,
-        body: "",
-        visits: [],
-        lunches: [],
-      },
-      ...buckets,
-    ];
-  }, [buckets, pendingOpenDate]);
+    const existing = new Set(buckets.map((b) => b.noteDate));
+    const extras = [...manualNoteDates]
+      .filter((date) => !existing.has(date))
+      .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
+      .map(
+        (noteDate): DoctorDayNoteBucket => ({
+          noteDate,
+          body: "",
+          visits: [],
+          lunches: [],
+        }),
+      );
+    if (extras.length === 0) return buckets;
+    return [...extras, ...buckets];
+  }, [buckets, manualNoteDates]);
 
   return (
     <section className="rounded-xl border border-violet-200 bg-fuchsia-50 p-4 dark:border-slate-700 dark:bg-slate-900">
