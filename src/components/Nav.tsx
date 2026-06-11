@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Plan" },
   { href: "/doctors", label: "Doctors" },
   { href: "/anchors", label: "Anchors" },
+  { href: "/coffee", label: "Coffee" },
   { href: "/inventory", label: "Inventory" },
   { href: "/sales", label: "Sales" },
 ];
@@ -16,7 +17,7 @@ export function Nav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-violet-200 bg-fuchsia-50/95 safe-bottom dark:border-slate-700 dark:bg-slate-900">
-      <div className="mx-auto grid max-w-lg grid-cols-5 gap-x-1 px-3 py-1">
+      <div className="mx-auto grid max-w-lg grid-cols-6 gap-x-0.5 px-2 py-1">
         {links.map(({ href, label }) => {
           const active =
             pathname === href ||

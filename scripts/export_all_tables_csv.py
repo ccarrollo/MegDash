@@ -26,6 +26,9 @@ TABLES = [
     "sales_goals",
     "monthly_goals",
     "sales_records",
+    "coffee_roster",
+    "coffee_deliveries",
+    "coffee_month_goals",
 ]
 
 

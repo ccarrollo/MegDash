@@ -272,3 +272,39 @@ export type LunchRow = {
   status: string;
   created_at: string;
 };
+
+export type CoffeeRosterRow = {
+  id: string;
+  doctor_id: string;
+  monthly_goal: number;
+  notes: string | null;
+  created_at: string;
+};
+
+export type CoffeeDeliveryRow = {
+  id: string;
+  doctor_id: string;
+  delivered_on: string;
+  notes: string | null;
+  created_at: string;
+};
+
+export type CoffeeMonthGoalRow = {
+  doctor_id: string;
+  period_year: number;
+  period_month: number;
+  goal: number;
+};
+
+export type CoffeeDoctorMonth = {
+  rosterId: string | null;
+  doctorId: string;
+  doctorName: string;
+  facilityName: string;
+  rosterNotes: string | null;
+  defaultGoal: number;
+  monthGoal: number;
+  actual: number;
+  deliveries: Array<{ id: string; deliveredOn: string; notes: string | null }>;
+  onRoster: boolean;
+};
