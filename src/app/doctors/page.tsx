@@ -9,6 +9,8 @@ import {
   getTodayPlanDoctorIds,
 } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function DoctorsPage() {
   const setup = getSetupStatus();
   const [doctors, facilities] = await Promise.all([

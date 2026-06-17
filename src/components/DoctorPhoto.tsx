@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { doctorPhotoPublicUrl } from "@/lib/doctorPhoto";
+import { prepareDoctorPhotoFile } from "@/lib/prepareDoctorPhoto";
 
 const sizes = {
   sm: { box: "h-14 w-14", icon: "text-xl" },
@@ -24,36 +25,55 @@ export function DoctorPhoto({
   allowUpload?: boolean;
 }) {
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const pendingPathRef = useRef<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [lightbox, setLightbox] = useState(false);
   const [localPath, setLocalPath] = useState(photoPath ?? null);
+  const [cacheKey, setCacheKey] = useState<string | null>(null);
 
   useEffect(() => {
+    if (pendingPathRef.current) {
+      if (photoPath === pendingPathRef.current) {
+        pendingPathRef.current = null;
+      } else if (!photoPath) {
+        return;
+      }
+    }
     setLocalPath(photoPath ?? null);
+    if (photoPath) {
+      setCacheKey((key) => key ?? photoPath);
+    }
   }, [photoPath, doctorId]);
 
-  const url = doctorPhotoPublicUrl(localPath);
+  const url = doctorPhotoPublicUrl(localPath, cacheKey ?? localPath);
   const dim = sizes[size];
 
   async function upload(file: File) {
     setUploading(true);
     try {
+      const prepared = await prepareDoctorPhotoFile(file);
       const form = new FormData();
-      form.append("photo", file);
+      form.append("photo", prepared);
       const res = await fetch(`/api/doctors/${doctorId}/photo`, {
         method: "POST",
         body: form,
       });
       const data = (await res.json()) as { photoPath?: string; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
-      setLocalPath(data.photoPath ?? localPath);
+      const savedPath = data.photoPath;
+      if (!savedPath) throw new Error("Photo saved but path missing");
+      pendingPathRef.current = savedPath;
+      setLocalPath(savedPath);
+      setCacheKey(String(Date.now()));
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Could not save photo.");
     } finally {
       setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
   }
 
@@ -64,12 +84,15 @@ export function DoctorPhoto({
       const res = await fetch(`/api/doctors/${doctorId}/photo`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("failed");
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "failed");
+      pendingPathRef.current = null;
       setLocalPath(null);
+      setCacheKey(null);
       setLightbox(false);
       router.refresh();
-    } catch {
-      alert("Could not remove photo.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not remove photo.");
     } finally {
       setUploading(false);
     }
@@ -78,6 +101,14 @@ export function DoctorPhoto({
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) void upload(file);
+  }
+
+  function openGallery() {
+    galleryInputRef.current?.click();
+  }
+
+  function openCamera() {
+    cameraInputRef.current?.click();
   }
 
   return (
@@ -101,7 +132,7 @@ export function DoctorPhoto({
           <button
             type="button"
             disabled={!allowUpload || uploading}
-            onClick={() => inputRef.current?.click()}
+            onClick={openGallery}
             className={`${dim.box} flex flex-col items-center justify-center rounded-xl border border-dashed border-violet-300 bg-violet-50/70 text-violet-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400`}
             aria-label={`Add photo for ${doctorName}`}
           >
@@ -115,7 +146,14 @@ export function DoctorPhoto({
         {allowUpload && (
           <>
             <input
-              ref={inputRef}
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onFileChange}
+            />
+            <input
+              ref={cameraInputRef}
               type="file"
               accept="image/*"
               capture="environment"
@@ -123,14 +161,22 @@ export function DoctorPhoto({
               onChange={onFileChange}
             />
             {url ? (
-              <div className="flex gap-2 text-[10px]">
+              <div className="flex flex-wrap justify-center gap-2 text-[10px]">
                 <button
                   type="button"
                   disabled={uploading}
-                  onClick={() => inputRef.current?.click()}
+                  onClick={openGallery}
                   className="text-brand-600 hover:underline disabled:opacity-50 dark:text-brand-400"
                 >
-                  {uploading ? "Saving…" : "Replace"}
+                  {uploading ? "Saving…" : "Gallery"}
+                </button>
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={openCamera}
+                  className="text-brand-600 hover:underline disabled:opacity-50 dark:text-brand-400"
+                >
+                  Camera
                 </button>
                 <button
                   type="button"
@@ -142,16 +188,24 @@ export function DoctorPhoto({
                 </button>
               </div>
             ) : (
-              size === "sm" && (
+              <div className="flex flex-wrap justify-center gap-2 text-[10px]">
                 <button
                   type="button"
                   disabled={uploading}
-                  onClick={() => inputRef.current?.click()}
-                  className="text-[10px] text-brand-600 hover:underline disabled:opacity-50 dark:text-brand-400"
+                  onClick={openGallery}
+                  className="text-brand-600 hover:underline disabled:opacity-50 dark:text-brand-400"
                 >
-                  {uploading ? "Saving…" : "Take photo"}
+                  {uploading ? "Saving…" : "Gallery"}
                 </button>
-              )
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={openCamera}
+                  className="text-brand-600 hover:underline disabled:opacity-50 dark:text-brand-400"
+                >
+                  Camera
+                </button>
+              </div>
             )}
           </>
         )}
@@ -183,14 +237,22 @@ export function DoctorPhoto({
             />
           </div>
           {allowUpload && (
-            <div className="mt-4 flex justify-center gap-3">
+            <div className="mt-4 flex flex-wrap justify-center gap-3">
               <button
                 type="button"
                 disabled={uploading}
-                onClick={() => inputRef.current?.click()}
+                onClick={openGallery}
                 className="rounded-lg bg-violet-50/15 px-4 py-2 text-sm text-white"
               >
-                Replace photo
+                Choose from gallery
+              </button>
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={openCamera}
+                className="rounded-lg bg-violet-50/15 px-4 py-2 text-sm text-white"
+              >
+                Take photo
               </button>
               <button
                 type="button"

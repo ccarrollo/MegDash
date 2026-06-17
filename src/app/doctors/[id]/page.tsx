@@ -21,6 +21,8 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
+export const dynamic = "force-dynamic";
+
 function visitCounterLabel(doctor: {
   days_since_visit: number | null;
 }) {

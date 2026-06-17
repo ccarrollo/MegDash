@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { DOCTOR_PHOTO_BUCKET } from "@/lib/doctorPhoto";
 import { getSupabase } from "@/lib/supabase";
 
@@ -6,11 +7,22 @@ type Params = { params: Promise<{ id: string }> };
 
 const MAX_BYTES = 8 * 1024 * 1024;
 
-function extForType(type: string) {
+function extForType(type: string, fileName: string) {
   if (type === "image/png") return "png";
   if (type === "image/webp") return "webp";
   if (type === "image/gif") return "gif";
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith(".png")) return "png";
+  if (lower.endsWith(".webp")) return "webp";
+  if (lower.endsWith(".gif")) return "gif";
   return "jpg";
+}
+
+function isImageUpload(file: File) {
+  if (file.type.startsWith("image/") && file.type !== "image/svg+xml") {
+    return true;
+  }
+  return /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(file.name);
 }
 
 export async function POST(request: Request, ctx: Params) {
@@ -30,7 +42,7 @@ export async function POST(request: Request, ctx: Params) {
     return NextResponse.json({ error: "No photo provided" }, { status: 400 });
   }
 
-  if (!file.type.startsWith("image/")) {
+  if (!isImageUpload(file)) {
     return NextResponse.json({ error: "File must be an image" }, { status: 400 });
   }
 
@@ -51,9 +63,11 @@ export async function POST(request: Request, ctx: Params) {
     return NextResponse.json({ error: "Doctor not found" }, { status: 404 });
   }
 
-  const ext = extForType(file.type);
+  const ext = extForType(file.type, file.name);
   const path = `${id}.${ext}`;
   const bytes = Buffer.from(await file.arrayBuffer());
+  const contentType =
+    file.type && file.type.startsWith("image/") ? file.type : `image/${ext}`;
 
   if (doctor.photo_path && doctor.photo_path !== path) {
     await supabase.storage.from(DOCTOR_PHOTO_BUCKET).remove([doctor.photo_path]);
@@ -63,23 +77,31 @@ export async function POST(request: Request, ctx: Params) {
     .from(DOCTOR_PHOTO_BUCKET)
     .upload(path, bytes, {
       upsert: true,
-      contentType: file.type,
+      contentType,
     });
 
   if (uploadErr) {
     return NextResponse.json({ error: uploadErr.message }, { status: 500 });
   }
 
-  const { error: updateErr } = await supabase
+  const { data: updated, error: updateErr } = await supabase
     .from("doctors")
     .update({ photo_path: path })
-    .eq("id", id);
+    .eq("id", id)
+    .select("photo_path")
+    .single();
 
-  if (updateErr) {
-    return NextResponse.json({ error: updateErr.message }, { status: 500 });
+  if (updateErr || !updated?.photo_path) {
+    return NextResponse.json(
+      { error: updateErr?.message ?? "Could not save photo path" },
+      { status: 500 },
+    );
   }
 
-  return NextResponse.json({ ok: true, photoPath: path });
+  revalidatePath(`/doctors/${id}`);
+  revalidatePath("/doctors");
+
+  return NextResponse.json({ ok: true, photoPath: updated.photo_path });
 }
 
 export async function DELETE(_request: Request, ctx: Params) {
@@ -115,6 +137,9 @@ export async function DELETE(_request: Request, ctx: Params) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  revalidatePath(`/doctors/${id}`);
+  revalidatePath("/doctors");
 
   return NextResponse.json({ ok: true });
 }
