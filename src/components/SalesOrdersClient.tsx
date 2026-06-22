@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AddNewOrderForm } from "@/components/AddNewOrderForm";
 import { OrderCard } from "@/components/OrderCard";
-import { COMMISSION_TIERS } from "@/lib/commission";
+import { SalesRecordsPanel } from "@/components/SalesRecordsPanel";
+import { COMMISSION_TIERS, WHOLESALE_COMMISSION_PCT } from "@/lib/commission";
 import { isOrderClosed } from "@/lib/orders";
 import type {
   MonthlyGoalRow,
@@ -35,9 +36,11 @@ function money(n: number) {
 function goalFieldsFromRow(goal: MonthlyGoalRow | null) {
   const accel = goal?.accel_goal ?? 0;
   const physio = goal?.physio_goal ?? 0;
+  const wholesale = goal?.wholesale_sales ?? 0;
   return {
     accel: accel > 0 ? String(accel) : "",
     physio: physio > 0 ? String(physio) : "",
+    wholesale: wholesale > 0 ? String(wholesale) : "",
   };
 }
 
@@ -45,6 +48,7 @@ export function SalesOrdersClient({
   performance,
   goal,
   sales,
+  allSales,
   orders,
   paymentsByOrderId,
   doctors,
@@ -54,6 +58,7 @@ export function SalesOrdersClient({
   performance: MonthlyPerformance;
   goal: MonthlyGoalRow | null;
   sales: SaleRecordRow[];
+  allSales: SaleRecordRow[];
   orders: OrderRow[];
   paymentsByOrderId: Record<string, SaleRecordRow[]>;
   doctors: { id: string; name: string; facility_name?: string | null }[];
@@ -63,6 +68,7 @@ export function SalesOrdersClient({
   const router = useRouter();
   const [accelGoal, setAccelGoal] = useState("");
   const [physioGoal, setPhysioGoal] = useState("");
+  const [wholesaleAmount, setWholesaleAmount] = useState("");
   const [showProductGoals, setShowProductGoals] = useState(false);
   const [showClosedOrders, setShowClosedOrders] = useState(false);
   const [copyTemplate, setCopyTemplate] = useState<OrderRow | null>(null);
@@ -72,6 +78,7 @@ export function SalesOrdersClient({
     const fields = goalFieldsFromRow(goal);
     setAccelGoal(fields.accel);
     setPhysioGoal(fields.physio);
+    setWholesaleAmount(fields.wholesale);
     setShowProductGoals(false);
   }, [goal, year, month]);
 
@@ -93,7 +100,7 @@ export function SalesOrdersClient({
     return () => window.clearTimeout(timer);
   }, [orders]);
 
-  async function saveGoal() {
+  async function saveProductGoals() {
     const accel = parseFloat(accelGoal);
     const physio = parseFloat(physioGoal);
     if (!Number.isFinite(accel) || !Number.isFinite(physio)) return;
@@ -118,11 +125,38 @@ export function SalesOrdersClient({
     }
   }
 
+  async function saveWholesaleAmount() {
+    const wholesale = parseFloat(wholesaleAmount);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/sales/monthly-goal", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          periodYear: year,
+          periodMonth: month,
+          wholesaleSales: Number.isFinite(wholesale) ? wholesale : 0,
+        }),
+      });
+      if (!res.ok) throw new Error("failed");
+      router.refresh();
+    } catch {
+      alert("Could not save wholesale amount.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const isQuarterEnd = month % 3 === 0;
   const tierHint = COMMISSION_TIERS.map(
     (t) => `${Math.round(t.minRatio * 100)}%+ → ${t.rate}%`,
   ).join(", ");
   const hasGoals = performance.goalTotal > 0;
+  const hasWholesale = performance.wholesaleSales > 0;
+  const commission3ppWithTrueUp = useMemo(
+    () => performance.commission3pp + (performance.trueUp ?? 0),
+    [performance.commission3pp, performance.trueUp],
+  );
   const openOrders = orders.filter((o) => !isOrderClosed(o));
   const closedOrders = orders.filter((o) => isOrderClosed(o));
 
@@ -133,9 +167,9 @@ export function SalesOrdersClient({
           Goals — {MONTH_NAMES[month - 1]} {year}
         </h2>
         <p className="mt-1 text-xs text-violet-800 dark:text-slate-400">
-          Goals are saved per month. Sales, percent of goal, commission rate, and
-          commission dollars are calculated automatically from paid 3PP sales in
-          the database (not copied from the sheet).
+          3PP goals drive tier rate and true-up. Wholesale pays a flat{" "}
+          {WHOLESALE_COMMISSION_PCT}% commission — not tied to 3PP goals. Total
+          commission = 3PP (plus true-up) + wholesale.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -180,7 +214,7 @@ export function SalesOrdersClient({
                   <button
                     type="button"
                     disabled={saving}
-                    onClick={saveGoal}
+                    onClick={() => void saveProductGoals()}
                     className="rounded bg-brand-600 px-3 py-1 text-xs text-white"
                   >
                     Save goals for {MONTH_NAMES[month - 1]}
@@ -208,6 +242,51 @@ export function SalesOrdersClient({
             </p>
             <p className="mt-1 text-xs text-violet-600 dark:text-slate-400">
               {sales.length} sale{sales.length === 1 ? "" : "s"} this month
+            </p>
+          </div>
+          <div className="rounded-lg bg-fuchsia-50 dark:bg-slate-900 p-3 shadow-sm dark:shadow-slate-950/50 sm:col-span-2">
+            <p className="text-xs text-violet-700 dark:text-slate-400">
+              Wholesale sales (My Sales $)
+              <span className="ml-1 text-brand-600">· {WHOLESALE_COMMISSION_PCT}% commission</span>
+            </p>
+            <p className="text-2xl font-bold">{money(performance.wholesaleSales)}</p>
+            <p className="text-xs text-violet-700 dark:text-slate-400">
+              {performance.wholesaleFromRecords > 0 && (
+                <>
+                  From wholesale orders: {money(performance.wholesaleFromRecords)}
+                  {performance.wholesaleManual > 0 ? " · " : ""}
+                </>
+              )}
+              {performance.wholesaleManual > 0 && (
+                <>Manual entry: {money(performance.wholesaleManual)}</>
+              )}
+              {!hasWholesale && "No wholesale sales this month yet"}
+            </p>
+            <label className="mt-2 block text-xs text-violet-700 dark:text-slate-400">
+              Additional wholesale $ (manual)
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={wholesaleAmount}
+                  onChange={(e) => setWholesaleAmount(e.target.value)}
+                  placeholder="0"
+                  className="w-full rounded border px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800"
+                />
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void saveWholesaleAmount()}
+                  className="shrink-0 rounded bg-brand-600 px-2 py-1 text-xs text-white"
+                >
+                  Save
+                </button>
+              </div>
+            </label>
+            <p className="mt-1 text-[10px] text-violet-600 dark:text-slate-500">
+              Paid wholesale orders count automatically. Add manual $ for anything
+              not on an order.
             </p>
           </div>
           <div className="rounded-lg bg-fuchsia-50 dark:bg-slate-900 p-3 shadow-sm dark:shadow-slate-950/50">
@@ -271,9 +350,56 @@ export function SalesOrdersClient({
           )}
         </div>
 
-        <p className="mt-3 text-sm font-medium text-violet-950 dark:text-slate-200">
-          Est. 3PP commission (monthly + true-up):{" "}
-          {hasGoals ? money(performance.commissionPay) : "—"}
+        <div className="mt-4 space-y-2 rounded-lg border border-brand-200/60 bg-fuchsia-50/80 p-3 dark:border-brand-900 dark:bg-slate-900/80">
+          <p className="text-sm font-semibold text-violet-950 dark:text-slate-100">
+            Estimated commission — {MONTH_NAMES[month - 1]}
+          </p>
+          <div className="grid gap-1 text-sm">
+            <p className="flex justify-between gap-4">
+              <span className="text-violet-700 dark:text-slate-400">
+                3PP commission (monthly)
+              </span>
+              <span className="font-medium">
+                {hasGoals ? money(performance.commission3pp) : "—"}
+              </span>
+            </p>
+            {(isQuarterEnd || month === 12) && (
+              <p className="flex justify-between gap-4">
+                <span className="text-violet-700 dark:text-slate-400">
+                  True up / down
+                </span>
+                <span className="font-medium">
+                  {!hasGoals
+                    ? "—"
+                    : performance.trueUp == null || performance.trueUp === 0
+                      ? "$0"
+                      : `${performance.trueUp < 0 ? "−" : "+"}${money(Math.abs(performance.trueUp))}`}
+                </span>
+              </p>
+            )}
+            <p className="flex justify-between gap-4">
+              <span className="text-violet-700 dark:text-slate-400">
+                Wholesale commission ({WHOLESALE_COMMISSION_PCT}%)
+              </span>
+              <span className="font-medium">
+                {hasWholesale ? money(performance.wholesalePayout) : "—"}
+              </span>
+            </p>
+            <p className="flex justify-between gap-4 border-t border-violet-200 pt-2 font-semibold dark:border-slate-700">
+              <span>Total commission</span>
+              <span>
+                {hasGoals || hasWholesale ? money(performance.commissionPay) : "—"}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-3 text-xs text-violet-700 dark:text-slate-400">
+          3PP subtotal (monthly + true-up):{" "}
+          {hasGoals ? money(commission3ppWithTrueUp) : "—"}
+          {hasWholesale && hasGoals ? " · " : ""}
+          {hasWholesale && !hasGoals ? "" : null}
+          {hasWholesale && `Wholesale: ${money(performance.wholesalePayout)}`}
         </p>
         <div className="mt-2 h-3 overflow-hidden rounded-full bg-fuchsia-50 dark:bg-slate-900">
           <div
@@ -284,6 +410,12 @@ export function SalesOrdersClient({
           />
         </div>
       </section>
+
+      <SalesRecordsPanel
+        title={`Sales — ${MONTH_NAMES[month - 1]} ${year}`}
+        sales={sales}
+        emptyMessage="No payments recorded for this month yet. Record payments on orders below — they count toward this month when you pick that payment month."
+      />
 
       <section className="rounded-xl border border-violet-200 dark:border-slate-700 bg-violet-50/70 dark:bg-slate-800 p-4 text-sm text-violet-900 dark:text-slate-300">
         <h3 className="font-semibold text-violet-950 dark:text-slate-100">How numbers stay up to date</h3>
@@ -298,17 +430,22 @@ export function SalesOrdersClient({
             installments).
           </li>
           <li>
-            <strong>% of goal, rate, commission</strong> — recomputed on every
-            page load from goals + paid sales (tier rules match your sheet).
+            <strong>Wholesale</strong> — mark orders as Wholesale and record
+            payments, or enter additional wholesale $ manually. Pays{" "}
+            {WHOLESALE_COMMISSION_PCT}% regardless of 3PP goal tier.
+          </li>
+          <li>
+            <strong>% of goal, 3PP rate, commissions</strong> — recomputed on
+            every page load from goals + paid sales.
           </li>
         </ul>
       </section>
 
       <section className="rounded-xl border border-violet-200 dark:border-slate-700 bg-fuchsia-50 dark:bg-slate-900 p-4">
-        <h2 className="font-semibold">Orders</h2>
+        <h2 className="font-semibold">Orders pipeline</h2>
         <p className="mt-1 text-xs text-violet-700 dark:text-slate-400">
-          Add orders here only — not from visit log. Record insurance and patient
-          payments as they arrive to hit monthly goals.
+          All open and closed orders — not filtered by month. Record payments here;
+          choose the payment month so they appear in that month&apos;s sales above.
         </p>
         <div className="mt-3">
           <AddNewOrderForm
@@ -378,6 +515,15 @@ export function SalesOrdersClient({
           </div>
         )}
       </section>
+
+      <SalesRecordsPanel
+        title="All sales history"
+        sales={allSales}
+        showPaymentMonth
+        collapsible
+        defaultExpanded={false}
+        emptyMessage="No sales recorded yet."
+      />
 
     </>
   );

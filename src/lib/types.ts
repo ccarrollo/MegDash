@@ -81,6 +81,7 @@ export type MonthlyGoalRow = {
   unit_goal: number;
   accel_goal: number;
   physio_goal: number;
+  wholesale_sales: number;
   revenue_per_unit: number | null;
   notes: string | null;
 };
@@ -150,6 +151,8 @@ export type MonthlyPerformance = {
   physioSales: number;
   sales3pp: number;
   wholesaleSales: number;
+  wholesaleFromRecords: number;
+  wholesaleManual: number;
   pctOfGoal: number;
   goalRatio: number;
   commissionRate: number;

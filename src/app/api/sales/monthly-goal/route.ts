@@ -16,6 +16,7 @@ export async function PUT(request: Request) {
     unitGoal?: number;
     accelGoal?: number;
     physioGoal?: number;
+    wholesaleSales?: number;
     revenuePerUnit?: number | null;
     notes?: string | null;
   };
@@ -24,17 +25,34 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Missing period" }, { status: 400 });
   }
 
-  const accel =
-    body.accelGoal ??
-    (body.unitGoal != null && body.physioGoal == null ? body.unitGoal : null);
-  const physio = body.physioGoal ?? 0;
+  const { data: existing } = await supabase
+    .from("monthly_goals")
+    .select("*")
+    .eq("period_year", body.periodYear)
+    .eq("period_month", body.periodMonth)
+    .maybeSingle();
 
-  if (accel == null && body.unitGoal == null) {
-    return NextResponse.json({ error: "Missing goal" }, { status: 400 });
+  const hasAccel = body.accelGoal != null || body.unitGoal != null;
+  const hasPhysio = body.physioGoal != null;
+  const hasWholesale = body.wholesaleSales != null;
+
+  if (!hasAccel && !hasPhysio && !hasWholesale && body.unitGoal == null) {
+    return NextResponse.json({ error: "Nothing to save" }, { status: 400 });
   }
 
-  const accelGoal = accel ?? 0;
-  const physioGoal = physio;
+  const accel =
+    body.accelGoal ??
+    (body.unitGoal != null && body.physioGoal == null
+      ? body.unitGoal
+      : (existing?.accel_goal ?? 0));
+  const physio = body.physioGoal ?? existing?.physio_goal ?? 0;
+  const wholesaleSales =
+    body.wholesaleSales != null
+      ? Math.max(0, Number(body.wholesaleSales) || 0)
+      : Number(existing?.wholesale_sales ?? 0);
+
+  const accelGoal = Number(accel) || 0;
+  const physioGoal = Number(physio) || 0;
   const unitGoal = Math.round(accelGoal + physioGoal);
 
   const { error } = await supabase.from("monthly_goals").upsert(
@@ -44,8 +62,13 @@ export async function PUT(request: Request) {
       unit_goal: unitGoal,
       accel_goal: accelGoal,
       physio_goal: physioGoal,
-      revenue_per_unit: body.revenuePerUnit ?? null,
-      notes: body.notes ?? null,
+      wholesale_sales: wholesaleSales,
+      revenue_per_unit:
+        body.revenuePerUnit !== undefined
+          ? body.revenuePerUnit
+          : (existing?.revenue_per_unit ?? null),
+      notes:
+        body.notes !== undefined ? body.notes : (existing?.notes ?? null),
       updated_at: new Date().toISOString(),
     },
     { onConflict: "period_year,period_month" },

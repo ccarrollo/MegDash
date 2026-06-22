@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { OrderDateFields } from "@/components/OrderDateFields";
 import {
   combineFittingDateTime,
@@ -128,6 +128,41 @@ export function OrderCard({
   const [paymentSource, setPaymentSource] = useState<"insurance" | "patient">(
     "patient",
   );
+  const [showOtherPayments, setShowOtherPayments] = useState(false);
+
+  const paymentsThisMonth = useMemo(
+    () =>
+      payments.filter(
+        (p) => p.payment_year === viewYear && p.payment_month === viewMonth,
+      ),
+    [payments, viewYear, viewMonth],
+  );
+  const paymentsOtherMonths = useMemo(
+    () =>
+      payments.filter(
+        (p) => p.payment_year !== viewYear || p.payment_month !== viewMonth,
+      ),
+    [payments, viewYear, viewMonth],
+  );
+
+  function renderPaymentRow(p: SaleRecordRow) {
+    return (
+      <li
+        key={p.id}
+        className="flex justify-between gap-2 rounded border border-violet-100 px-2 py-1 text-xs dark:border-slate-800"
+      >
+        <span>
+          {MONTH_NAMES[p.payment_month - 1]} {p.payment_year} ·{" "}
+          {p.payment_source === "insurance"
+            ? "Insurance"
+            : p.payment_source === "patient"
+              ? "Patient"
+              : "Payment"}
+        </span>
+        <span className="font-medium">{money(paymentAmount(p))}</span>
+      </li>
+    );
+  }
 
   useEffect(() => {
     setForm(orderToForm(order));
@@ -577,27 +612,31 @@ export function OrderCard({
 
           {payments.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-violet-800 dark:text-slate-300">
-                Payments ({payments.length})
-              </p>
-              <ul className="mt-1 space-y-1">
-                {payments.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex justify-between gap-2 rounded border border-violet-100 px-2 py-1 text-xs dark:border-slate-800"
+              {paymentsThisMonth.length > 0 && (
+                <>
+                  <p className="text-xs font-medium text-violet-800 dark:text-slate-300">
+                    Payments this month ({paymentsThisMonth.length})
+                  </p>
+                  <ul className="mt-1 space-y-1">{paymentsThisMonth.map(renderPaymentRow)}</ul>
+                </>
+              )}
+              {paymentsOtherMonths.length > 0 && (
+                <div className={paymentsThisMonth.length > 0 ? "mt-2" : ""}>
+                  <button
+                    type="button"
+                    onClick={() => setShowOtherPayments((v) => !v)}
+                    className="text-xs text-brand-600 hover:underline"
                   >
-                    <span>
-                      {MONTH_NAMES[p.payment_month - 1]} {p.payment_year} ·{" "}
-                      {p.payment_source === "insurance"
-                        ? "Insurance"
-                        : p.payment_source === "patient"
-                          ? "Patient"
-                          : "Payment"}
-                    </span>
-                    <span className="font-medium">{money(paymentAmount(p))}</span>
-                  </li>
-                ))}
-              </ul>
+                    {showOtherPayments ? "Hide" : "Show"} other months (
+                    {paymentsOtherMonths.length})
+                  </button>
+                  {showOtherPayments && (
+                    <ul className="mt-1 space-y-1">
+                      {paymentsOtherMonths.map(renderPaymentRow)}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

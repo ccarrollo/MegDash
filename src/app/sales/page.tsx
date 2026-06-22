@@ -3,6 +3,7 @@ import { SetupBanner } from "@/components/SetupBanner";
 import { SalesMonthNav } from "@/components/SalesMonthNav";
 import { SalesOrdersClient } from "@/components/SalesOrdersClient";
 import {
+  fetchAllSales,
   fetchDoctors,
   fetchMonthlyGoal,
   fetchPaymentsForOrders,
@@ -31,10 +32,11 @@ export default async function SalesPage({
       ? month
       : now.getMonth() + 1;
 
-  const [performance, goal, sales, orders, doctors] = await Promise.all([
+  const [performance, goal, sales, allSales, orders, doctors] = await Promise.all([
     getMonthlyPerformance(safeYear, safeMonth),
     fetchMonthlyGoal(safeYear, safeMonth),
     fetchSalesForMonth(safeYear, safeMonth),
+    fetchAllSales(),
     fetchRecentOrders(100),
     fetchDoctors(),
   ]);
@@ -44,6 +46,14 @@ export default async function SalesPage({
 
   const doctorMap = new Map(doctors.map((d) => [d.id, d]));
   const salesEnriched = sales.map((s) => {
+    const d = s.doctor_id ? doctorMap.get(s.doctor_id) : null;
+    return {
+      ...s,
+      doctor_name: d?.name ?? null,
+      facility_name: d?.facility_name ?? null,
+    };
+  });
+  const allSalesEnriched = allSales.map((s) => {
     const d = s.doctor_id ? doctorMap.get(s.doctor_id) : null;
     return {
       ...s,
@@ -67,7 +77,7 @@ export default async function SalesPage({
       <div>
         <h1 className="text-xl font-bold">Sales & Orders</h1>
         <p className="mt-1 text-sm text-violet-700 dark:text-slate-400">
-          3PP goals, orders with payment lines, and commission tiers
+          3PP goals, wholesale sales, orders with payment lines, and commission
         </p>
         <p className="mt-2 text-sm">
           <Link href="/import" className="text-brand-600 hover:underline">
@@ -85,6 +95,7 @@ export default async function SalesPage({
         performance={performance}
         goal={goal}
         sales={salesEnriched}
+        allSales={allSalesEnriched}
         orders={ordersEnriched}
         paymentsByOrderId={paymentsByOrderId}
         doctors={doctors.map((d) => ({

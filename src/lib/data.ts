@@ -640,10 +640,27 @@ export async function fetchSalesForYear(year: number): Promise<SaleRecordRow[]> 
     .from("sales_records")
     .select("*")
     .eq("payment_year", year)
-    .order("payment_month")
+    .order("payment_month", { ascending: false })
     .order("fitted_date", { ascending: false });
   if (error) {
     logQueryError("fetchSalesForYear", error);
+    return [];
+  }
+  return (data ?? []) as SaleRecordRow[];
+}
+
+export async function fetchAllSales(limit = 500): Promise<SaleRecordRow[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("sales_records")
+    .select("*")
+    .order("payment_year", { ascending: false })
+    .order("payment_month", { ascending: false })
+    .order("fitted_date", { ascending: false })
+    .limit(limit);
+  if (error) {
+    logQueryError("fetchAllSales", error);
     return [];
   }
   return (data ?? []) as SaleRecordRow[];
@@ -672,7 +689,8 @@ export async function fetchMonthlyGoalsForYear(
 function normalizeMonthlyGoal(row: MonthlyGoalRow): MonthlyGoalRow {
   const accel = Number(row.accel_goal ?? 0);
   const physio = Number(row.physio_goal ?? 0);
-  return { ...row, accel_goal: accel, physio_goal: physio };
+  const wholesale = Number(row.wholesale_sales ?? 0);
+  return { ...row, accel_goal: accel, physio_goal: physio, wholesale_sales: wholesale };
 }
 
 function buildMonthSlices(
@@ -698,10 +716,12 @@ function buildMonthSlices(
       else if (isPhysioStimProduct(s.product)) physioSales += amt;
     }
     const sales3pp = channel3pp.reduce((sum, s) => sum + saleMySalesAmount(s), 0);
-    const wholesaleSales = wholesale.reduce(
+    const wholesaleSalesFromRecords = wholesale.reduce(
       (sum, s) => sum + saleMySalesAmount(s),
       0,
     );
+    const wholesaleManual = Number(goal?.wholesale_sales ?? 0);
+    const wholesaleSales = wholesaleSalesFromRecords + wholesaleManual;
 
     slices.push({
       month: m,
@@ -711,6 +731,8 @@ function buildMonthSlices(
       physioSales,
       sales3pp,
       wholesaleSales,
+      wholesaleFromRecords: wholesaleSalesFromRecords,
+      wholesaleManual,
     });
   }
   return slices;
@@ -749,6 +771,8 @@ export async function getMonthlyPerformance(
     physioSales: slice.physioSales,
     sales3pp,
     wholesaleSales: slice.wholesaleSales,
+    wholesaleFromRecords: slice.wholesaleFromRecords ?? 0,
+    wholesaleManual: slice.wholesaleManual ?? 0,
     pctOfGoal: bd.pctOfGoal,
     goalRatio: bd.goalRatio,
     commissionRate: bd.commissionRate,

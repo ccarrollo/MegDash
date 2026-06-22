@@ -6,10 +6,9 @@ export const COMMISSION_TIERS = [
   { minRatio: 0, rate: 8 },
 ] as const;
 
-/** Off for now — wholesale tracked separately on sheet (W/X); enable when Meg wants it in-app. */
-export const WHOLESALE_ENABLED = false;
-
+/** Wholesale commission rate — not tied to 3PP goal tiers. */
 export const WHOLESALE_PAYOUT_RATE = 0.1;
+export const WHOLESALE_COMMISSION_PCT = 10;
 
 export function commissionRateForRatio(ratio: number): number {
   if (!Number.isFinite(ratio) || ratio <= 0) return 8;
@@ -89,6 +88,8 @@ export type MonthSalesSlice = {
   physioSales: number;
   sales3pp: number;
   wholesaleSales: number;
+  wholesaleFromRecords?: number;
+  wholesaleManual?: number;
 };
 
 export type MonthCommissionBreakdown = {
@@ -110,9 +111,7 @@ export function breakdownForMonth(
   const goalTotal = slice.accelGoal + slice.physioGoal;
   const ratio = goalRatio(slice.sales3pp, goalTotal);
   const commission3pp = monthlyQ;
-  const wholesale = WHOLESALE_ENABLED
-    ? wholesalePayout(slice.wholesaleSales)
-    : 0;
+  const wholesale = wholesalePayout(slice.wholesaleSales);
   const trueUpAmt = trueUp ?? 0;
   return {
     goalTotal,
