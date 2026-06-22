@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { paymentAmount } from "@/lib/orders";
+import { formatPaymentMoney, paymentAmount } from "@/lib/orders";
 import type { SaleRecordRow } from "@/lib/types";
 
 const MONTH_NAMES = [
@@ -54,6 +54,7 @@ function SaleRow({ sale, showPaymentMonth }: { sale: SaleRecordRow; showPaymentM
             )}
             {channelLabel(sale.channel)}
             {sale.product ? ` · ${sale.product}` : ""}
+            {amount < 0 ? " · Refund" : ""}
             {sale.payment_source === "insurance"
               ? " · Insurance"
               : sale.payment_source === "patient"
@@ -61,7 +62,13 @@ function SaleRow({ sale, showPaymentMonth }: { sale: SaleRecordRow; showPaymentM
                 : ""}
           </p>
         </div>
-        <p className="shrink-0 font-semibold tabular-nums">{money(amount)}</p>
+        <p
+          className={`shrink-0 font-semibold tabular-nums ${
+            amount < 0 ? "text-red-600 dark:text-red-400" : ""
+          }`}
+        >
+          {formatPaymentMoney(amount)}
+        </p>
       </div>
       {sale.order_id && (
         <Link

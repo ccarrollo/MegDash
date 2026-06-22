@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
   if (body.mySalesAmount == null || !Number.isFinite(body.mySalesAmount)) {
     return NextResponse.json(
-      { error: "My Sales $ is required (use 0 for comp/giveaway)" },
+      { error: "My Sales $ is required (negative for refunds, 0 for comp)" },
       { status: 400 },
     );
   }

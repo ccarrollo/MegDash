@@ -30,7 +30,7 @@ export function AddPaidSaleForm({
     e.preventDefault();
     const amt = parseFloat(mySalesAmount);
     if (!Number.isFinite(amt)) {
-      alert("Enter My Sales $ (0 for comp/giveaway).");
+      alert("Enter My Sales $ (negative for refunds, 0 for comp).");
       return;
     }
     const py = parseInt(paymentYear, 10);
@@ -97,8 +97,8 @@ export function AddPaidSaleForm({
     >
       <p className="text-sm font-medium">Add paid sale (3PP)</p>
       <p className="text-xs text-violet-700 dark:text-slate-400">
-        My Sales $ is per order — use 0 for comp or giveaway. Device cost is
-        optional (what the device cost the practice).
+        My Sales $ is per order — use 0 for comp, negative for refunds. Device
+        cost is optional (what the device cost the practice).
       </p>
 
       <label className="block text-xs">
@@ -132,12 +132,11 @@ export function AddPaidSaleForm({
           <span className="text-violet-700 dark:text-slate-400">My Sales $ *</span>
           <input
             type="number"
-            min={0}
             step={0.01}
             required
             value={mySalesAmount}
             onChange={(e) => setMySalesAmount(e.target.value)}
-            placeholder="0"
+            placeholder="0 or -25 refund"
             className="mt-1 w-full rounded border px-2 py-1 text-sm font-semibold"
           />
         </label>

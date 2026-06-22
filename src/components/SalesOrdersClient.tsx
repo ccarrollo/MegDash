@@ -427,7 +427,8 @@ export function SalesOrdersClient({
           <li>
             <strong>3PP sales</strong> — record payments on each order when
             insurance or patient money is received (including monthly plan
-            installments).
+            installments). Use a negative amount for refunds in the month they
+            hit.
           </li>
           <li>
             <strong>Wholesale</strong> — mark orders as Wholesale and record

@@ -10,6 +10,17 @@ export function paymentAmount(p: SaleRecordRow): number {
   return Number(p.my_sales_amount ?? p.revenue ?? 0);
 }
 
+/** Currency display; negative amounts show as refunds (e.g. −$50). */
+export function formatPaymentMoney(n: number): string {
+  const abs = Math.abs(n);
+  const formatted = `$${abs.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
+  if (n < 0) return `−${formatted}`;
+  return formatted;
+}
+
 export function sumPayments(payments: SaleRecordRow[]): number {
   return payments.reduce((sum, p) => sum + paymentAmount(p), 0);
 }

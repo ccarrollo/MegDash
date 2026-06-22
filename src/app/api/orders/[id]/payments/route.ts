@@ -29,7 +29,7 @@ export async function POST(request: Request, ctx: Params) {
   }
   if (body.amount == null || !Number.isFinite(body.amount)) {
     return NextResponse.json(
-      { error: "Amount is required (use 0 for comp/giveaway)" },
+      { error: "Amount is required (negative for refunds, 0 for comp)" },
       { status: 400 },
     );
   }

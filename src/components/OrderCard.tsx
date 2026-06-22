@@ -11,6 +11,7 @@ import {
 } from "@/lib/orderFormDates";
 import {
   expectedCollectedTotal,
+  formatPaymentMoney,
   isOrderClosed,
   paymentAmount,
   sumPayments,
@@ -146,6 +147,7 @@ export function OrderCard({
   );
 
   function renderPaymentRow(p: SaleRecordRow) {
+    const amt = paymentAmount(p);
     return (
       <li
         key={p.id}
@@ -158,8 +160,15 @@ export function OrderCard({
             : p.payment_source === "patient"
               ? "Patient"
               : "Payment"}
+          {amt < 0 ? " · Refund" : ""}
         </span>
-        <span className="font-medium">{money(paymentAmount(p))}</span>
+        <span
+          className={
+            amt < 0 ? "font-medium text-red-600 dark:text-red-400" : "font-medium"
+          }
+        >
+          {formatPaymentMoney(amt)}
+        </span>
       </li>
     );
   }
@@ -564,6 +573,9 @@ export function OrderCard({
               className="rounded border border-violet-200 bg-white/70 p-2 dark:border-slate-700 dark:bg-slate-800"
             >
               <p className="text-xs font-medium">Record payment toward goals</p>
+              <p className="text-[10px] text-violet-600 dark:text-slate-500">
+                Use a negative amount for refunds — it reduces that month&apos;s sales.
+              </p>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="block text-xs">
                   <span className="text-violet-700">Payment month</span>
@@ -578,11 +590,10 @@ export function OrderCard({
                   <span className="text-violet-700">Amount $</span>
                   <input
                     type="number"
-                    min={0}
                     step={0.01}
                     value={paymentAmountInput}
                     onChange={(e) => setPaymentAmountInput(e.target.value)}
-                    placeholder="50"
+                    placeholder="50 or -25 refund"
                     className="mt-1 w-full rounded border px-2 py-1 text-xs"
                   />
                 </label>

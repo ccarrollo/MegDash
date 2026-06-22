@@ -50,7 +50,7 @@ export async function PATCH(request: Request, ctx: Params) {
     !Number.isFinite(body.mySalesAmount)
   ) {
     return NextResponse.json(
-      { error: "My Sales $ must be a number (use 0 for comp/giveaway)" },
+      { error: "My Sales $ must be a number (negative for refunds, 0 for comp)" },
       { status: 400 },
     );
   }

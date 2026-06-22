@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { saleMySalesAmount } from "@/lib/data";
+import { formatPaymentMoney, paymentAmount } from "@/lib/orders";
 import type { SaleRecordRow } from "@/lib/types";
 
 const PRODUCTS = ["AccelStim", "PhysioStim"] as const;
@@ -45,7 +45,7 @@ export function PaidSaleRow({
   const [doctorId, setDoctorId] = useState(sale.doctor_id ?? "");
   const [patientLabel, setPatientLabel] = useState(sale.patient_label ?? "");
   const [mySalesAmount, setMySalesAmount] = useState(
-    String(saleMySalesAmount(sale)),
+    String(paymentAmount(sale)),
   );
   const [actualCost, setActualCost] = useState(
     sale.actual_cost != null ? String(sale.actual_cost) : "",
@@ -58,7 +58,7 @@ export function PaidSaleRow({
   function resetForm() {
     setDoctorId(sale.doctor_id ?? "");
     setPatientLabel(sale.patient_label ?? "");
-    setMySalesAmount(String(saleMySalesAmount(sale)));
+    setMySalesAmount(String(paymentAmount(sale)));
     setActualCost(sale.actual_cost != null ? String(sale.actual_cost) : "");
     setProduct(productSelectValue(sale.product));
     setPaymentYear(String(sale.payment_year));
@@ -79,7 +79,7 @@ export function PaidSaleRow({
   async function save() {
     const amt = parseFloat(mySalesAmount);
     if (!Number.isFinite(amt)) {
-      alert("Enter My Sales $ (0 for comp/giveaway).");
+      alert("Enter My Sales $ (negative for refunds, 0 for comp).");
       return;
     }
     const py = parseInt(paymentYear, 10);
@@ -144,7 +144,7 @@ export function PaidSaleRow({
     }
   }
 
-  const amt = saleMySalesAmount(sale);
+  const amt = paymentAmount(sale);
 
   if (!editing) {
     return (
@@ -158,7 +158,7 @@ export function PaidSaleRow({
             <p className="text-xs text-violet-700 dark:text-slate-400">
               Payment: {MONTH_NAMES[sale.payment_month - 1]} {sale.payment_year}
               {sale.product && ` · ${sale.product}`}
-              {` · My Sales ${money(amt)}`}
+              {` · My Sales ${formatPaymentMoney(amt)}`}
               {sale.actual_cost != null &&
                 ` · Device ${money(Number(sale.actual_cost))}`}
             </p>
@@ -222,11 +222,11 @@ export function PaidSaleRow({
           <span className="text-violet-700 dark:text-slate-400">My Sales $ *</span>
           <input
             type="number"
-            min={0}
             step={0.01}
             value={mySalesAmount}
             onChange={(e) => setMySalesAmount(e.target.value)}
             disabled={saving}
+            placeholder="0 or -25 refund"
             className="mt-1 w-full rounded border px-2 py-1 text-sm font-semibold bg-fuchsia-50 dark:bg-slate-900"
           />
         </label>
